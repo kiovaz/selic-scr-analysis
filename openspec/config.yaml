@@ -1,0 +1,37 @@
+schema: spec-driven
+githubCopilot:
+  cloudAgent: false
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+# Example:
+context: |
+  Projeto Integrador de engenharia de dados.
+  Pipeline Bronze/Silver/Gold cruzando SCR.data (Banco Central, arquivo CSV)
+  com a Selic (Ipeadata, API REST), por UF e modalidade de financiamento.
+  Stack: Python 3.11, pandas, requests, pytest.
+  Chave de cruzamento: ano_mes. Recorte: jul/2016 em diante.
+  A especificação completa está em docs/architecture.md.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing
