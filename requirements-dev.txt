@@ -1,0 +1,23 @@
+# Dependências de EXPLORAÇÃO — não são necessárias para o pipeline rodar.
+#
+# Por que num arquivo separado: o requirements.txt é instalado sozinho em
+# dois lugares — o CI, a cada push e a cada PR, e o Dockerfile, que o copia
+# na camada de dependências. O Jupyter puxa ~80 pacotes (tornado, nbformat,
+# nbconvert, jsonschema, pyzmq...) que nenhum teste usa. Deixá-lo aqui
+# mantém o CI e a imagem enxutos.
+#
+# Versões fixadas, igual ao requirements.txt (Requisito 4 do enunciado).
+# Para atualizar: altere aqui, rode `pip install -r requirements-dev.txt`
+# e commite.
+#
+# Como usar (um comando só; a linha abaixo já traz o pipeline junto):
+#     pip install -r requirements-dev.txt
+#     jupyter lab notebooks/01_exploracao_amostras.ipynb
+#
+# No VS Code, o ipykernel sozinho já basta — o jupyterlab só é preciso
+# para abrir o notebook no navegador.
+
+-r requirements.txt
+
+jupyterlab==4.6.3
+ipykernel==7.3.0
