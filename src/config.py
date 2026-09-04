@@ -29,9 +29,20 @@ SCR_URL_TEMPLATE = "https://www.bcb.gov.br/pda/desig/scrdata_{ano}.zip"
 SCR_PORTAL = "https://dadosabertos.bcb.gov.br/dataset/scr_data"
 SCR_SEPARADOR = ";"
 
-# O encoding real é confirmado na Sprint 1, ao abrir a amostra.
-# Deixamos os dois candidatos porque o loader testa em ordem.
-SCR_ENCODINGS_CANDIDATOS = ["latin-1", "utf-8"]
+# Confirmado na Sprint 1, abrindo a amostra de 2024: os CSVs do SCR vêm
+# em UTF-8 com BOM (os três primeiros bytes do arquivo são EF BB BF).
+# O `-sig` do "utf-8-sig" é justamente o que consome esse BOM — sem ele,
+# o nome da primeira coluna viria "\ufeffdata_base" em vez de "data_base".
+#
+# A ORDEM DESTA LISTA IMPORTA e não pode ser trocada. Quem lê usa o
+# primeiro encoding que decodificar sem erro, e "latin-1" mapeia todos os
+# 256 bytes possíveis — ele nunca levanta erro, em arquivo nenhum. Se
+# vier primeiro, vence sempre, mesmo em arquivo UTF-8, e os acentos viram
+# lixo ("Comércio" lido como "ComÃ©rcio").
+# Isso não é cosmético: `modalidade` é texto acentuado e o recorte do
+# projeto é LIKE 'Financiamentos%'. Encoding errado quebra o filtro.
+# Por isso "latin-1" fica por último, como fallback de último recurso.
+SCR_ENCODINGS_CANDIDATOS = ["utf-8-sig", "utf-8", "latin-1"]
 
 # Só estas cinco colunas viram Silver. As outras ficam na Bronze.
 SCR_COLUNAS_USADAS = [
@@ -62,7 +73,12 @@ SELIC_URL = (
 # Referência: seção 2.3 de docs/architecture.md
 ANO_INICIO = 2016
 MES_INICIO = 7
-ANO_FIM = 2025  # revisar conforme a última competência publicada
+# Conferido na Sprint 1 (2026-09-03): o ZIP de 2026 existe e responde 200;
+# o de 2027 dá 404. Então 2026 é o ano mais recente publicado.
+# O arquivo de 2026 é parcial (100,8 MiB contra 167,9 MiB de um ano cheio),
+# porque o SCR publica com ~30 dias de defasagem — o ano corrente só tem os
+# meses já fechados. Revisar a cada virada de ano.
+ANO_FIM = 2026
 
 # Das 13 modalidades do SCR.data, usamos as 8 de financiamento.
 PREFIXO_MODALIDADE = "Financiamentos"
