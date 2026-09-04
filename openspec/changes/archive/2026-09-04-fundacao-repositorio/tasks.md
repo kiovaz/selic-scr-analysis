@@ -34,4 +34,4 @@
 - [x] 5.1 Comparar o diagnóstico com `src/config.py` e corrigir apenas o que divergir — encoding fora de `SCR_ENCODINGS_CANDIDATOS`, nome de coluna diferente, ou `ANO_FIM` desalinhado da última competência; registrar cada divergência encontrada em `docs/architecture.md`
 - [x] 5.2 Rodar `pytest -v` e confirmar que os 7 testes de `tests/test_config.py` continuam passando após qualquer ajuste em `src/config.py`
 - [x] 5.3 Conferir a definição de pronto da Sprint 1 (seção 8 do `docs/architecture.md`) item a item: as duas amostras foram abertas e todos os `[PREENCHER]` foram respondidos
-- [ ] 5.4 Commitar em commits atômicos no padrão do projeto (`✨ feat:`, `📄 docs:`), distribuídos e com mensagem em pt-BR; abrir o Pull Request para a `main`
+- [x] 5.4 Commitar em commits atômicos no padrão do projeto (`✨ feat:`, `📄 docs:`), distribuídos e com mensagem em pt-BR; abrir o Pull Request para a `main` — *feito em 7 commits no branch `sprint-1-fundacao`; o PR #1 foi aberto e mesclado no **`develop`**, não na `main`, porque o grupo adotou `develop` como branch de integração (commit `f027a98` liberou PRs para ela no CI)*

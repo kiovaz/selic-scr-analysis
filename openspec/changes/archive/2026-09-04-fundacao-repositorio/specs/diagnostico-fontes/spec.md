@@ -25,13 +25,15 @@ O comando SHALL tratar falha de rede, erro HTTP e resposta malformada como **res
 
 ### Requirement: Conferência do contrato do SCR.data
 
-O diagnóstico SHALL abrir a amostra do SCR.data e reportar, para o primeiro arquivo do ZIP: o encoding que decodificou o conteúdo, o cabeçalho, a contagem total de colunas e, para cada uma das cinco colunas de `SCR_COLUNAS_USADAS`, se ela está presente.
+O diagnóstico SHALL abrir a amostra do SCR.data e reportar, para o **último** arquivo do ZIP em ordem alfabética: o encoding que decodificou o conteúdo, o cabeçalho, a contagem total de colunas e, para cada uma das cinco colunas de `SCR_COLUNAS_USADAS`, se ela está presente.
+
+O ZIP de um ano traz um CSV por mês, nomeados `scrdata_AAAAMM.csv`. Inspecionar o último em ordem alfabética é o que entrega, de graça, a competência mais recente do arquivo — que o diagnóstico SHALL reportar para comparação com `ANO_FIM`.
 
 O encoding SHALL ser determinado testando os candidatos declarados em `src/config.py`, na ordem, adotando o primeiro que decodificar o conteúdo sem erro. Quando nenhum candidato decodifica o conteúdo, isso SHALL ser reportado como divergência a investigar, não como sucesso.
 
 A lista de candidatos SHALL estar ordenada do mais restritivo para o mais permissivo. Um encoding que aceita qualquer sequência de bytes — `latin-1` aceita — SHALL vir por último: se vier antes, ele decodifica tudo sem erro e impede que os demais sejam testados, produzindo um resultado que parece bem-sucedido e está errado.
 
-O diagnóstico SHALL reaproveitar uma amostra já presente em `data/raw/_amostras/` quando ela existir, em vez de rebaixar o arquivo — o ZIP tem cerca de 176 MB.
+O diagnóstico SHALL reaproveitar uma amostra já presente em `data/raw/_amostras/` quando ela existir, em vez de rebaixar o arquivo — o ZIP de um ano cheio tem cerca de 168 MiB. Um modo explícito de forçar o download SHALL existir, para conferir se a fonte mudou.
 
 #### Scenario: Layout esperado confirmado
 
@@ -56,7 +58,8 @@ O diagnóstico SHALL reaproveitar uma amostra já presente em `data/raw/_amostra
 
 - **WHEN** o diagnóstico é executado e `data/raw/_amostras/` já contém o ZIP do ano da amostra
 - **THEN** o arquivo local é usado
-- **AND** nenhum download de 176 MB é refeito
+- **AND** nenhum download de ~168 MiB é refeito
+- **AND** a saída diz que nada foi baixado e como forçar o download
 
 ### Requirement: Conferência do contrato da Selic
 
