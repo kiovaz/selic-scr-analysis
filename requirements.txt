@@ -1,0 +1,15 @@
+# Versões fixadas (Requisito 4 do enunciado).
+# Para atualizar: altere aqui, rode `pip install -r requirements.txt` e commite.
+
+pandas==2.3.3
+requests==2.34.2
+
+# Análise e gráficos (Sprint 4)
+matplotlib==3.11.1
+seaborn==0.13.2
+
+# Machine learning (Sprint 5)
+scikit-learn==1.9.0
+
+# Testes (Sprint 3)
+pytest==9.1.1

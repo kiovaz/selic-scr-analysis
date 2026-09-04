@@ -1,0 +1,10 @@
+# Só é usado se o grupo decidir manter o Docker (seção 7.3 do architecture.md).
+
+services:
+  pipeline:
+    build: .
+    volumes:
+      # Monta a pasta de dados do computador dentro do container,
+      # para que os arquivos baixados não sumam quando ele parar.
+      - ./data:/app/data
+    working_dir: /app
