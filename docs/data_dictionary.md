@@ -48,13 +48,22 @@ Aferido em `notebooks/01_exploracao_amostras.ipynb` sobre a amostra de 2024.
 **Uma linha por:** linha do CSV original, como veio da fonte.
 **Chave primária:** `(_source_object, _record_hash)`
 
-*(Preencher na Sprint 2, após confirmar as colunas na amostra real.)*
+| Coluna | Tipo | Domínio | Origem | Significado |
+|---|---|---|---|---|
+| `data_base` | string | `AAAA-MM-DD` | CSV SCR | data de referência do mês |
+| `uf` | string(2) | 27 UFs | CSV SCR | unidade da federação |
+| `modalidade` | string | texto livre | CSV SCR | modalidade de crédito |
+| `numero_de_operacoes` | integer | inteiro (inclui `-1` como máscara) | CSV SCR | quantidade de operações. `-1` é máscara do BCB, tratada na Silver |
+| `carteira_ativa` | decimal | ≥ 0, em reais | CSV SCR | saldo da carteira ativa |
 
 ### `bronze_selic`
 **Uma linha por:** data da série.
 **Chave primária:** `(_source_object, _record_hash)`
 
-*(Preencher na Sprint 2.)*
+| Coluna | Tipo | Domínio | Origem | Significado |
+|---|---|---|---|---|
+| `VALDATA` | date | ≥ jul/2016 | API Ipeadata | data de referência da série |
+| `VALVALOR` | decimal | % ao mês | API Ipeadata | taxa Selic acumulada no mês |
 
 ### Metadados técnicos (presentes nas duas tabelas Bronze)
 
