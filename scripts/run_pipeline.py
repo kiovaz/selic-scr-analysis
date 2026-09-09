@@ -14,6 +14,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src import config  # noqa: E402
+from src.ingestion.scr_file_loader import carregar_scr
+from src.ingestion.selic_api_loader import carregar_selic
 
 
 def main():
@@ -27,8 +29,18 @@ def main():
           f"a 12/{config.ANO_FIM}")
     print(f"Modalidades: as que começam com '{config.PREFIXO_MODALIDADE}'")
 
+    # --- Sprint 2: Ingestão Bronze ---
+    print("\n=== Sprint 2: Ingestão Bronze ===")
+
+    print("\nIngerindo SCR.data...")
+    load_id_scr = carregar_scr()
+    print(f"  SCR concluído (load_id: {load_id_scr})")
+
+    print("\nIngerindo Selic (Ipeadata)...")
+    load_id_selic = carregar_selic()
+    print(f"  Selic concluído (load_id: {load_id_selic})")
+
     print("\n--- Etapas ainda não implementadas ---")
-    print("  [ ] Sprint 2: ingestão Bronze")
     print("  [ ] Sprint 3: idempotência e carga incremental")
     print("  [ ] Sprint 4: Silver e Gold")
     print("  [ ] Sprint 5: base de ML")
