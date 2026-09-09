@@ -59,11 +59,38 @@ python scripts/baixar_amostras.py
 
 Esse script baixa um ano do SCR.data e a série da Selic, e imprime um diagnóstico: encoding do arquivo, nomes das colunas, número de linhas e as primeiras linhas de dados. Ele **não** faz ingestão — serve para confirmar que as fontes ainda existem e estão no formato esperado antes de escrevermos o pipeline.
 
-### 5. Rodar os testes
+O ZIP do SCR tem ~168 MiB. Se a amostra já estiver em `data/raw/_amostras/`, o script **reaproveita o arquivo** em vez de rebaixar. Para conferir se a fonte mudou:
+
+```bash
+python scripts/baixar_amostras.py --forcar-download
+```
+
+### 5. Abrir o notebook de exploração (opcional)
+
+O Jupyter não está no `requirements.txt` — o CI e o Docker instalam só aquele arquivo, e nenhum teste usa notebook. As ferramentas de exploração ficam em `requirements-dev.txt`, que já traz o `requirements.txt` junto:
+
+```bash
+pip install -r requirements-dev.txt
+jupyter lab notebooks/01_exploracao_amostras.ipynb
+```
+
+No VS Code, o `ipykernel` sozinho basta — o `jupyterlab` só é preciso para abrir no navegador.
+
+### 6. Rodar os testes
 
 ```bash
 pytest
 ```
+
+### 7. Rodar pelo Docker (alternativa ao venv)
+
+O grupo decidiu manter o Docker (seção 7.3 do `architecture.md`). Ele padroniza o ambiente entre as máquinas, mas **não** é o caminho padrão — os passos 2 a 6 acima continuam sendo a forma normal de rodar.
+
+```bash
+docker compose run --rm pipeline
+```
+
+A imagem instala apenas o `requirements.txt`; o Jupyter fica de fora dela de propósito.
 
 ---
 
@@ -78,6 +105,7 @@ pytest
 │   ├── architecture.md       # especificação do projeto — leia antes de codar
 │   └── data_dictionary.md    # dicionário de dados
 ├── notebooks/               # exploração e análise
+│   └── 01_exploracao_amostras.ipynb   # Sprint 1: conferência das fontes
 ├── scripts/                 # scripts executáveis
 ├── src/
 │   ├── config.py             # caminhos, URLs e constantes
@@ -85,7 +113,9 @@ pytest
 │   ├── transformation/       # Bronze → Silver → Gold
 │   ├── validation/           # checagens de qualidade
 │   └── ml/                   # modelo (Sprint 5)
-└── tests/                   # testes automatizados
+├── tests/                   # testes automatizados
+├── requirements.txt         # dependências do pipeline (CI e Docker instalam esta)
+└── requirements-dev.txt     # + ferramentas de exploração (Jupyter)
 ```
 
 `docs/architecture.md` é a fonte de verdade do projeto. Mudança de escopo entra lá primeiro, no código depois.
@@ -97,7 +127,7 @@ pytest
 | Base | Instituição | Acesso | Formato | Licença |
 |---|---|---|---|---|
 | [SCR.data](https://dadosabertos.bcb.gov.br/dataset/scr_data) | Banco Central do Brasil | arquivo | ZIP → CSV (`;`) | Open Data Commons ODbL |
-| [Selic — série BM12_TJOVER12](http://www.ipeadata.gov.br/) | Ipea (Ipeadata) | API REST | JSON (OData v4) | *(a preencher — Sprint 1)* |
+| [Selic — série BM12_TJOVER12](http://www.ipeadata.gov.br/) | Ipea (Ipeadata) | API REST | JSON (OData v4) | sem termo único publicado; uso educacional com citação obrigatória da fonte ([detalhes](docs/architecture.md)) |
 
 **Data de coleta:** *(a preencher — Sprint 1)*
 

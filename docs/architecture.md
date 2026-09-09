@@ -60,14 +60,26 @@ Em nenhum documento, apresentação ou código do projeto a palavra "segmento" d
 | O que é | Dados de crédito por estado e mês |
 | Portal | https://dadosabertos.bcb.gov.br/dataset/scr_data |
 | Download | `https://www.bcb.gov.br/pda/desig/scrdata_{ANO}.zip` |
-| Formato | ZIP → CSV, separador `;` |
+| Formato | ZIP → CSV, separador `;`, decimal `,`, campos entre aspas duplas |
+| Encoding | `utf-8-sig` (UTF-8 com BOM) — **confirmado na Sprint 1**, ver ressalva abaixo |
 | Acesso | Arquivo |
 | Granularidade original | UF × mês × segmento × cliente × modalidade × submodalidade × CNAE/ocupação × porte × origem × indexador |
 | Período disponível | desde jun/2012, atualização mensal (~30 dias após o fechamento) |
 | Licença | Open Data Commons ODbL |
 | Metodologia | https://www.bcb.gov.br/pda/desig/metodologia_versao2.pdf |
 | Colunas usadas | `data_base`, `uf`, `modalidade`, `numero_de_operacoes`, `carteira_ativa` |
-| **Data de coleta** | **[PREENCHER na Sprint 1 — data real do download]** |
+| **Data de coleta** | **2026-09-03** (amostra do ano de 2024) |
+| Volume conferido | ZIP de 167,9 MiB → 12 CSVs mensais, ~1,15 GB descompactado, 3.726.515 linhas em 2024 |
+
+**Conferido na Sprint 1 (amostra de 2024, coletada em 2026-09-03):**
+
+- O ZIP de um ano traz **um CSV por mês** (`scrdata_AAAAMM.csv`), cada um com um único `data_base`. A amostra tem 24 colunas e as 5 que o projeto usa estão todas presentes.
+- **Encoding: `utf-8-sig`.** A lista `SCR_ENCODINGS_CANDIDATOS` do `config.py` estava como `["latin-1", "utf-8"]` e precisou ser corrigida para `["utf-8-sig", "utf-8", "latin-1"]`. Motivo: quem lê adota o primeiro candidato que decodificar sem erro, e `latin-1` aceita qualquer byte — nunca falha. Vindo primeiro, ele vencia sempre e devolvia `ComÃ©rcio` no lugar de `Comércio`. Como `modalidade` é texto acentuado e o recorte é `LIKE 'Financiamentos%'`, o encoding errado quebraria o filtro central do projeto. **A ordem da lista não pode ser trocada.**
+- **`carteira_ativa` está em REAIS**, não em milhares. Aferido pela ordem de grandeza: SP somou R$ 977,0 bilhões em financiamentos em dez/2024.
+- **`numero_de_operacoes` usa `-1` como máscara** para valores abaixo do limite de divulgação do BCB. Não é contagem negativa. Ocorre em 83.511 das 310.432 linhas de dez/2024 (27%) — precisa de tratamento explícito na Silver.
+- O nome exato de uma modalidade é `Financiamentos rurais  (ex-financiamentos rurais e agroindustriais)`, **com dois espaços** antes do parêntese. O filtro por prefixo não se incomoda, mas comparação por igualdade precisa do nome exato.
+- **`ANO_FIM` estava em 2025 e foi corrigido para 2026.** Conferido por requisição ao próprio endpoint: os ZIPs de 2024, 2025 e 2026 respondem 200; o de 2027 dá 404. O arquivo de 2026 é parcial (100,8 MiB contra 167,9 MiB de um ano cheio), coerente com a defasagem de publicação de ~30 dias.
+- Evidência completa em `notebooks/01_exploracao_amostras.ipynb`, com as saídas gravadas.
 
 **Filtro aplicado:** o SCR.data tem 13 modalidades de crédito; usamos as 8 que começam com "Financiamentos" (`modalidade LIKE 'Financiamentos%'`): financiamentos, à exportação, à importação, com interveniência, rurais e agroindustriais, imobiliários, de títulos e valores mobiliários, e de infraestrutura e desenvolvimento.
 
@@ -81,10 +93,22 @@ Em nenhum documento, apresentação ou código do projeto a palavra "segmento" d
 | Formato | JSON (OData v4) |
 | Acesso | API REST, sem autenticação |
 | Unidade | **% ao mês** (não % ao ano) |
-| Campos | `SERCODIGO`, `VALDATA`, `VALVALOR` |
-| Período | mensal |
-| Licença | **[PREENCHER na Sprint 1 — conferir os termos de uso publicados pelo Ipeadata]** |
-| **Data de coleta** | **[PREENCHER na Sprint 1 — data real da requisição]** |
+| Campos | `SERCODIGO`, `VALDATA`, `VALVALOR` — a API devolve também `NIVNOME` e `TERCODIGO`, ambos vazios nesta série |
+| Período | mensal — 633 registros, de jan/1974 a set/2026; **123 dentro do recorte** (jul/2016 em diante) |
+| Licença | Sem termo único publicado no Ipeadata — ver ressalva abaixo. Uso educacional permitido e **citação da fonte obrigatória** nas três declarações do Ipea |
+| **Data de coleta** | **2026-09-03** |
+
+**Licença — consultado em 2026-09-03.** Nem o `ipeadata.gov.br` nem a página da sua API publicam termos de uso. O que existe são três declarações diferentes, em propriedades distintas do Ipea:
+
+| Onde | O que diz |
+|---|---|
+| [ipea.gov.br/portal/dados-abertos](https://www.ipea.gov.br/portal/dados-abertos) | "Todo o conteúdo deste site está publicado sob a licença **Creative Commons Atribuição 2.5 Brasil**." |
+| [repositorio.ipea.gov.br](https://repositorio.ipea.gov.br/handle/11058/2206) (registro IPEADATA) | **Licença Padrão Ipea**: reprodução e exibição para uso educacional ou informativo, com crédito e citação da fonte; proíbe uso comercial e obras derivadas. |
+| [ipea.gov.br/extrator/termos_condicoes.html](https://www.ipea.gov.br/extrator/termos_condicoes.html) (outra ferramenta) | Apache 2.0 para o software; obrigatória a citação da fonte do dado. |
+
+O denominador comum das três é o que vale para este projeto: **uso educacional é permitido e a citação da fonte é obrigatória**. Sendo um trabalho acadêmico, sem fim lucrativo e sem redistribuição do dado bruto, o uso está coberto mesmo pela leitura mais restritiva. A divergência entre as três está registrada na seção 11 (Limitações Conhecidas).
+
+**Atenção ao último mês da série.** Na coleta de 2026-09-03 o último registro era `2026-09-01` com valor **0,1**, contra ~1,1 nos meses vizinhos: é o **mês corrente ainda incompleto**. Incluí-lo produziria uma queda falsa de mais de 90% na variação da Selic. O mês em curso precisa ser descartado na Silver.
 
 **Nota de proveniência:** o Ipeadata redistribui a série originalmente produzida pelo Banco Central. Instituição mantenedora distinta, origem primária a mesma. Isso deve constar explicitamente no dicionário de dados.
 
@@ -290,7 +314,13 @@ O Docker resolve "na minha máquina funciona", mas o enunciado já é satisfeito
 
 **Regra de decisão:** se pelo menos um integrante já tem alguma familiaridade com Docker, mantemos. Se ninguém tem, cortamos e ficamos com `venv`. Debugar Dockerfile é tempo que não vira nota.
 
-Decisão do grupo: **[PREENCHER na Sprint 1]**
+Decisão do grupo (Sprint 1, 2026-09-03): **MANTER o Docker.**
+
+O critério da própria regra acima foi atendido — há integrante do grupo com familiaridade suficiente para explicar o `Dockerfile` na apresentação. `Dockerfile` e `docker-compose.yml` seguem versionados, e o README traz a instrução de uso.
+
+Vale registrar o que o Docker **não** faz aqui: ele não é o caminho padrão de execução, que continua sendo `venv` + `requirements.txt`. Ele padroniza o ambiente entre as máquinas do grupo. Se em alguma sprint futura ninguém conseguir mais explicar o Dockerfile, a decisão é revista — o critério é esse, não o esforço já investido.
+
+Uma consequência prática desta decisão: o `Dockerfile` copia **apenas** o `requirements.txt` na camada de dependências. As ferramentas de exploração (Jupyter) ficam em `requirements-dev.txt` justamente para não entrarem na imagem nem na instalação do CI.
 
 ---
 
@@ -439,6 +469,9 @@ projeto-selic-credito/
 4. A Selic é nacional — não existe taxa por estado. O efeito diferente por UF é inferido pela resposta ao mesmo estímulo, não por variação do estímulo.
 5. Associação não é causa: renda, emprego, safra e política de crédito dos bancos não são controlados.
 6. Operações abaixo de R$ 200 não entram na base. O limite era R$ 1.000 até maio/2016 — por isso o recorte começa em julho/2016.
+
+7. O Ipeadata **não publica termos de uso** no seu próprio site. As três declarações de licença encontradas em propriedades do Ipea (CC BY 2.5 BR no portal de dados abertos, Licença Padrão Ipea no repositório, Apache 2.0 no Extrator) divergem entre si quanto a uso comercial e obras derivadas. Uso educacional com citação da fonte é permitido nas três, que é o caso deste projeto — mas uma eventual reutilização comercial deste trabalho exigiria consultar o Ipea antes. Consultado em 2026-09-03; detalhes na seção 2.2.
+8. A amostra conferida na Sprint 1 é do ano de **2024**. Os anos anteriores do SCR.data podem ter cabeçalho ou layout diferente — a Sprint 2 confere ano a ano em vez de assumir o layout de 2024.
 
 **O que seria preciso para afirmar mais:** série de concessões com abertura por UF (não disponível publicamente), variáveis de controle regionais mensais como renda e emprego, e informação sobre a política de crédito das instituições.
 
