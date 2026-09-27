@@ -59,3 +59,36 @@ def test_bronze_selic_sem_duplicata_na_chave_apos_varias_execucoes():
     bronze = ler_bronze("bronze_selic")
     assert len(bronze) == 4        # ago, set (0.50), set (0.88), out
     assert bronze.duplicated(CHAVE).sum() == 0
+
+
+def test_silver_sem_duplicata_na_chave():
+    """
+    Prova da chave da Silver (seção 4.2): (ano_mes, uf, modalidade) na
+    silver_scr e (ano_mes) na silver_selic, sobre uma Bronze com versão
+    republicada e leituras repetidas da Selic.
+    """
+    from src.transformation.silver_scr import construir_silver_scr
+    from src.transformation.silver_selic import construir_silver_selic
+    import datetime
+
+    linhas = [{"data_base": "2024-01-31", "uf": uf, "modalidade": "Financiamentos imobiliários",
+               "numero_de_operacoes": "3", "carteira_ativa": "10,00", "porte": porte}
+              for uf in ["SP", "RJ"] for porte in ["PF", "PJ"]]
+    bcb = BCBSimulado()
+    with bcb.no_ar():
+        bcb.publicar(2024, '"v1"', {"scrdata_202401.csv": (linhas, (2026, 3, 25, 0, 0, 0))})
+        carregar_scr(anos=[2024])
+        bcb.publicar(2024, '"v2"', {"scrdata_202401.csv": (linhas, (2026, 9, 1, 0, 0, 0))})
+        carregar_scr(anos=[2024])
+    for valor in [0.50, 0.88, 0.88]:
+        with ipeadata_simulado(selic(("2024-01-01", valor), ("2024-02-01", 0.80))):
+            carregar_selic()
+
+    silver_scr = construir_silver_scr()
+    silver_selic = construir_silver_selic(hoje=datetime.date(2026, 9, 27))
+
+    assert len(silver_scr) == 2                                     # SP e RJ, uma linha cada
+    assert silver_scr.duplicated(["ano_mes", "uf", "modalidade"]).sum() == 0
+    assert set(silver_scr["volume_rs"]) == {20.0}                   # só a versão vigente (não 40)
+    assert silver_selic.duplicated(["ano_mes"]).sum() == 0
+    assert len(silver_selic) == 2
