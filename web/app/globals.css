@@ -1,0 +1,291 @@
+/* Cores como variáveis: o tema escuro troca só os valores, em um lugar. */
+:root {
+  color-scheme: light;
+  --fundo: #f9f9f7;
+  --superficie: #fcfcfb;
+  --texto: #0b0b0b;
+  --texto-2: #52514e;
+  --texto-3: #6b6a66;
+  --grade: #e1e0d9;
+  --eixo: #c3c2b7;
+  --borda: rgba(11, 11, 11, 0.1);
+  --serie-1: #2a78d6; /* azul: saldo / "expandir" */
+  --serie-2: #eb6834; /* laranja: Selic */
+  --positivo: #2a78d6;
+  --negativo: #e34948;
+  --neutro: #f0efec;
+  --destaque: #256abf;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --fundo: #0d0d0d;
+    --superficie: #1a1a19;
+    --texto: #ffffff;
+    --texto-2: #c3c2b7;
+    --texto-3: #a3a29b;
+    --grade: #2c2c2a;
+    --eixo: #383835;
+    --borda: rgba(255, 255, 255, 0.1);
+    --serie-1: #3987e5;
+    --serie-2: #d95926;
+    --positivo: #3987e5;
+    --negativo: #e66767;
+    --neutro: #383835;
+    --destaque: #6da7ec;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.55;
+}
+
+a {
+  color: var(--destaque);
+}
+
+.topo {
+  border-bottom: 1px solid var(--borda);
+  background: var(--superficie);
+}
+
+.topo-conteudo {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 14px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  align-items: baseline;
+}
+
+.marca {
+  font-weight: 700;
+  color: var(--texto);
+  text-decoration: none;
+}
+
+.menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+
+.menu a {
+  color: var(--texto-2);
+  text-decoration: none;
+}
+
+.menu a:hover {
+  color: var(--texto);
+  text-decoration: underline;
+}
+
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+h1 {
+  font-size: 1.6rem;
+  line-height: 1.25;
+  margin: 0 0 8px;
+}
+
+h2 {
+  font-size: 1.2rem;
+  margin: 36px 0 8px;
+}
+
+.sub {
+  color: var(--texto-2);
+  margin: 0 0 20px;
+  max-width: 75ch;
+}
+
+.cartao {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+
+.frase p {
+  margin: 0 0 10px;
+  max-width: 85ch;
+}
+
+.frase p:last-child {
+  margin-bottom: 0;
+}
+
+.numeros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.numero-rotulo {
+  color: var(--texto-2);
+  font-size: 0.9rem;
+}
+
+.numero-valor {
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.numero-nota {
+  color: var(--texto-3);
+  font-size: 0.85rem;
+}
+
+.duas-colunas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr));
+  gap: 16px;
+}
+
+.rolagem {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--grade);
+  vertical-align: top;
+}
+
+th {
+  color: var(--texto-2);
+  font-weight: 600;
+}
+
+td.num,
+th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.barra-prob {
+  display: inline-block;
+  height: 8px;
+  border-radius: 0 4px 4px 0;
+  background: var(--serie-1);
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.alerta .barra-prob {
+  background: var(--negativo);
+}
+
+.nota {
+  color: var(--texto-3);
+  font-size: 0.88rem;
+  max-width: 85ch;
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  margin: 8px 0 16px;
+}
+
+.filtros label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.9rem;
+  color: var(--texto-2);
+}
+
+select {
+  font: inherit;
+  color: var(--texto);
+  background: var(--superficie);
+  border: 1px solid var(--eixo);
+  border-radius: 6px;
+  padding: 6px 8px;
+  max-width: 100%;
+}
+
+.grafico-titulo {
+  font-weight: 600;
+  margin: 0 0 2px;
+}
+
+.grafico-sub {
+  color: var(--texto-2);
+  font-size: 0.88rem;
+  margin: 0 0 8px;
+}
+
+.dica {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.88rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.mapa td.celula {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  border: 2px solid var(--superficie);
+  min-width: 56px;
+}
+
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 0.85rem;
+  color: var(--texto-2);
+  margin-top: 8px;
+}
+
+.amostra {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  vertical-align: -1px;
+  margin-right: 4px;
+}
+
+.rodape {
+  border-top: 1px solid var(--borda);
+  color: var(--texto-3);
+  font-size: 0.85rem;
+}
+
+.rodape div {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px;
+}
