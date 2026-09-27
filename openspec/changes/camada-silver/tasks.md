@@ -35,4 +35,5 @@
   - Ajuste feito aqui: `converter_numero` passou a devolver `float64` comum (antes saía `Float64` anulável do pandas), para a Gold não lidar com dois tipos de número.
 - [x] 6.2 Rodar de novo e confirmar que `silver_scr.parquet`, `silver_selic.parquet` e as quarentenas são idênticos aos da 6.1 (mesmo conteúdo, ignorando `_load_id`). Verificar e anotar.
   - **Resultado:** duas construções seguidas em 288 s no total; `silver_scr` e `silver_selic` idênticas (ignorando `_load_id`), quarentenas com 0 linhas nas duas, e valores iguais aos da execução pelo pipeline.
-- [ ] 6.3 `pytest -v`, CI verde no PR para o `develop`, commits atômicos em pt-BR **sem linha de atribuição**.
+- [x] 6.3 `pytest -v`, CI verde no PR para o `develop`, commits atômicos em pt-BR **sem linha de atribuição**.
+  - **Resultado:** 63 testes passando; CI verde em Python 3.11 no PR #12; commits sem linha de atribuição.
