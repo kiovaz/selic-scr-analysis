@@ -141,7 +141,7 @@ A primeira carga completa (todos os anos) leva cerca de 35 minutos. Deixe o note
 | Base | Instituição | Acesso | Formato | Licença |
 |---|---|---|---|---|
 | [SCR.data](https://dadosabertos.bcb.gov.br/dataset/scr_data) | Banco Central do Brasil | arquivo | ZIP → CSV (`;`) | Open Data Commons ODbL |
-| [Selic — série BM12_TJOVER12](http://www.ipeadata.gov.br/) | Ipea (Ipeadata) | API REST | JSON (OData v4) | sem termo único publicado; uso educacional com citação obrigatória da fonte ([detalhes](docs/architecture.md)) |
+| [Selic meta do Copom — série BM366_TJOVER366](http://www.ipeadata.gov.br/) | Ipea (Ipeadata) | API REST | JSON (OData v4) | sem termo único publicado; uso educacional com citação obrigatória da fonte ([detalhes](docs/architecture.md)) |
 
 **Data de coleta:** *(a preencher — Sprint 1)*
 
