@@ -1,0 +1,41 @@
+## 1. Especificação primeiro
+
+- [x] 1.1 Atualizar `docs/architecture.md`: seção 5.3 com as colunas novas (`linhas_qtd_nao_divulgada`, `tem_mes_anterior`), a regra "variação só entre meses consecutivos" (decisão do grupo, 2026-09-27), `var_qtd_pct` vazia quando a quantidade anterior é 0 (7.945 grupos) e as defasagens da Selic pelo calendário; seção 5.4 com os dois níveis (Brasil por modalidade e UF × modalidade), Spearman como medida principal, a defasagem k* vinda do nível Brasil, a amostra mínima de 24 meses e o ajuste de Benjamini-Hochberg; seção 9 com `src/analise/` e `docs/figuras/`; seção 11 com a limitação de sazonalidade. Verificar: as seções 5.3, 5.4 e 9 citam as novas regras e pastas.
+- [x] 1.2 Atualizar `docs/data_dictionary.md`: `gold_credito_selic` com todas as colunas e as duas tabelas da análise (`analise_brasil_modalidade` e `analise_uf_modalidade`), campo a campo. Verificar: o dicionário tem as três tabelas da camada Gold.
+
+## 2. Configuração e dependência
+
+- [x] 2.1 Acrescentar `scipy==1.18.1` ao `requirements.txt` (a versão instalada, conferida com `pip show scipy`). Acrescentar a `src/config.py`: `DEFASAGEM_MAXIMA = 6`, `MESES_MINIMOS_CORRELACAO = 24`, `ARQUIVO_GOLD`, `ARQUIVO_ANALISE_BRASIL`, `ARQUIVO_ANALISE_UF`, `ARQUIVO_RELATORIO_GOLD` (em `DIR_GOLD`) e `DIR_FIGURAS = RAIZ / "docs" / "figuras"`, com comentários; isolar os novos caminhos de dados em `tests/conftest.py` (as figuras também, para os testes não sobrescreverem as reais). Verificar: `pip install -r requirements.txt` sem mudanças e `pytest tests/test_config.py` verde.
+
+## 3. gold_credito_selic
+
+- [x] 3.1 Criar `src/transformation/gold_credito_selic.py`: série da Selic contínua com `var_selic_pp` e `selic_lag_1..6`; join com a `silver_scr` por `ano_mes` e contagem de órfãos dos dois lados (outer + indicator); gravação atômica da Gold e do relatório. Verificar: um teste com um mês do SCR sem Selic e um mês da Selic sem SCR confere 1 órfão de cada lado no relatório e a linha sem Selic fora da Gold; outro confere que todas as UFs de um mês recebem a mesma `selic_pct`.
+- [x] 3.2 Calcular `tem_mes_anterior`, `var_volume_pct` e `var_qtd_pct` por `(uf, modalidade)` pelo calendário. Verificar: o cenário AP × títulos (set/2016, out/2016, fev/2017 → vazio, calculada, vazio), a quantidade anterior zero (`var_qtd_pct` vazia, `var_volume_pct` calculada) e um valor conhecido (100 → 150 = +50%).
+- [x] 3.3 Conferir as defasagens pelo calendário. Verificar: numa linha de jan/2017, `selic_lag_1..6` = Selic de dez/2016 a jul/2016; numa linha de jul/2016, `var_selic_pp` e os lags vazios; e numa combinação sem linha em jan/2017, a linha de fev/2017 tem `selic_lag_1` = Selic de jan/2017.
+
+## 4. Análise
+
+- [x] 4.1 Criar `src/analise/correlacao.py` com a função do nível Brasil (soma das UFs por mês e modalidade, variação nacional, Spearman e Pearson para k de 0 a 6, `n_meses`, p-valor, p ajustado por Benjamini-Hochberg, `significativo`). Verificar: numa Gold sintética com variação do volume = −(variação da Selic de 2 meses antes), o Spearman em k = 2 é −1 e é o maior |ρ| da modalidade; o resultado tem modalidades × 7 linhas; `p_ajustado >= p_valor` em todas.
+- [x] 4.2 Acrescentar a função do nível UF × modalidade: k* da modalidade vindo do nível Brasil, só linhas com `tem_mes_anterior` e as duas variações, amostra mínima (`amostra_insuficiente` quando `n_meses < MESES_MINIMOS_CORRELACAO`) e Benjamini-Hochberg só entre as combinações calculadas. Verificar: uma combinação com 5 meses fica vazia e marcada; todas as combinações de uma modalidade usam o mesmo k*.
+- [x] 4.3 Carregar o skill `dataviz` e criar as funções dos dois gráficos (correlação por defasagem por modalidade, com os significativos destacados; mapa de calor UF × modalidade com escala divergente centrada em 0 e as células insuficientes distintas), gravando em `DIR_FIGURAS`. Verificar: um teste gera as duas figuras numa pasta temporária e confere que os arquivos existem e não estão vazios.
+
+## 5. Pipeline, notebook e testes de chave
+
+- [x] 5.1 Acrescentar as etapas "Gold" e "Análise" ao `scripts/run_pipeline.py`, depois da Silver, imprimindo o resumo (linhas da Gold, órfãos, as 3 associações mais fortes do nível Brasil com k e p ajustado). Verificar: o resumo aparece na execução real (6.1).
+- [x] 5.2 Acrescentar a `tests/test_no_duplicates.py` a prova da chave da Gold, `duplicated(["ano_mes","uf","modalidade"]).sum() == 0`, junto com as da Silver: é a definição de pronto da Sprint 4 ("o assert de duplicata passa nas três tabelas"). Verificar: verde.
+- [x] 5.3 Criar `notebooks/02_analise_estatistica.ipynb`: lê `data/final/` e `docs/figuras/` (caminhos do `config.py`), mostra a tabela do nível Brasil, os dois gráficos e, em células de texto, como ler cada um, a regra "associação, não causa", o papel do ajuste para muitos testes e as limitações (quantidade subestimada, sazonalidade, valores nominais). Salvar com as saídas preenchidas. Verificar: o notebook roda do início ao fim sem erro (`jupyter nbconvert --execute`) e nenhum caminho está chumbado.
+  - **Resultado:** notebook executado com `jupyter nbconvert --execute` sem erro, saídas gravadas, caminhos só via `config`. Foi preciso instalar o `requirements-dev.txt` no `.venv` desta máquina (o Jupyter não estava instalado).
+- [x] 5.4 Rodar `pytest -v`. Verificar: todos verdes, sem rede e sem tocar em `data/` nem em `docs/figuras/`.
+  - **Resultado:** 75 testes passando, sem rede e sem escrever em `data/` nem em `docs/figuras/`.
+
+## 6. Execução real
+
+- [x] 6.1 Rodar Gold e Análise sobre a Silver real e anotar nesta task: tempo; linhas da Gold (esperado 24.578); órfãos (esperado 0 dos dois lados); linhas sem mês anterior; a tabela do nível Brasil resumida (k de maior |ρ| por modalidade, ρ e p ajustado); quantas combinações UF × modalidade foram calculadas e quantas tiveram amostra insuficiente; e o que os dois gráficos mostram, em uma ou duas frases por gráfico, como associação.
+  - **Pausa e desvio (2026-09-27):** a primeira execução, com a Selic acumulada no mês (`BM12_TJOVER12`), deu **0 de 56** associações significativas. A investigação mostrou que a variação mensal daquela série tem correlação de 0,79 com a variação dos dias úteis (mediu o calendário, não o Copom). O grupo decidiu trocar a série: change `troca-serie-selic`, aplicada antes de concluir esta.
+  - **Resultado com a Selic meta do Copom:** Gold em 0,2 s e análise em ~5 s. `gold_credito_selic` = **24.578 linhas**, 120 meses, **0 órfãos** dos dois lados, 393 linhas sem mês anterior, 8.085 com `var_qtd_pct` vazia. Chave sem duplicata.
+  - **Nível Brasil:** 9 de 56 medidas significativas. Maior |ρ| por modalidade: imobiliário k=4 **ρ=+0,42** (p aj. < 0,001, significativo em todas as defasagens); rural k=5 ρ=+0,26 (p aj. 0,034); geral k=2 +0,20; exportação k=1 +0,15; interveniência k=2 +0,07; infraestrutura k=4 −0,15; títulos k=1 −0,15; importação k=5 −0,23 (p aj. 0,075) — só as duas primeiras significativas.
+  - **UF × modalidade:** 214 combinações calculadas, 2 com amostra insuficiente (AC e AP em títulos), **56 significativas** (45 positivas, 11 negativas): imobiliário em 25 UFs (ρ mediano +0,34), geral em 12, rural em 8, infraestrutura em 7 (negativas) e importação em 4 (negativas).
+  - **O que os gráficos mostram, como associação:** (1) no Brasil, o saldo imobiliário tende a crescer mais nos meses seguintes a altas da Selic — associação positiva, compatível com o Copom subir os juros quando crédito e economia estão aquecidos, não com um efeito dos juros sobre o crédito; (2) no mapa de calor o padrão imobiliário se repete em quase todos os estados, e as associações negativas se concentram em infraestrutura e importação, em poucos estados.
+- [x] 6.2 Rodar de novo e confirmar que a Gold e as duas tabelas da análise são idênticas às da 6.1. Verificar e anotar.
+  - **Resultado:** pipeline rodado de novo (190 s); `gold_credito_selic`, `analise_brasil_modalidade` e `analise_uf_modalidade` idênticas às da execução anterior (conferido junto com a tarefa 3.2 da `troca-serie-selic`).
+- [ ] 6.3 `pytest -v`, CI verde no PR para o `develop`, commits atômicos em pt-BR **sem linha de atribuição**. As figuras de `docs/figuras/` entram no commit.
