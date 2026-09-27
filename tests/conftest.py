@@ -43,6 +43,10 @@ def dados_isolados(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "ARQUIVO_ANALISE_UF", final / "analise_uf_modalidade.parquet")
     monkeypatch.setattr(config, "ARQUIVO_RELATORIO_GOLD", final / "_relatorio_gold.json")
     monkeypatch.setattr(config, "DIR_FIGURAS", tmp_path / "figuras")   # não sobrescreve as figuras reais
+    monkeypatch.setattr(config, "ARQUIVO_ML_DATASET", final / "gold_ml_dataset.parquet")
+    monkeypatch.setattr(config, "ARQUIVO_ML_RESULTADOS", final / "ml_resultados.json")
+    monkeypatch.setattr(config, "ARQUIVO_ML_PREVISOES_TESTE", final / "ml_previsoes_teste.parquet")
+    monkeypatch.setattr(config, "ARQUIVO_ML_PREVISAO_PRODUCAO", final / "ml_previsao_producao.parquet")
     return tmp_path
 
 

@@ -3,7 +3,7 @@ Executa o pipeline inteiro, de ponta a ponta.
 
 Cada sprint acrescenta uma etapa aqui. Hoje: prepara as pastas e faz a
 ingestão Bronze do SCR e da Selic (Sprints 2 e 3) e constrói a Silver,
-a Gold e a análise (Sprint 4).
+a Gold e a análise (Sprint 4) e o modelo de ML (Sprint 5).
 
 Como rodar (da raiz do projeto):
     python scripts/run_pipeline.py              # todos os anos (~2 GB de download)
@@ -25,6 +25,7 @@ from src.transformation.silver_scr import construir_silver_scr
 from src.transformation.silver_selic import construir_silver_selic
 from src.transformation.gold_credito_selic import construir_gold
 from src.analise.correlacao import executar_analise
+from src.ml.treino import executar_ml
 
 
 def main():
@@ -101,8 +102,22 @@ def main():
               f"{int(uf_modalidade['significativo'].sum())} significativas")
         print(f"  Figuras em {config.DIR_FIGURAS}")
 
-    print("\n--- Etapas ainda não implementadas ---")
-    print("  [ ] Sprint 5: base de ML")
+    # --- Sprint 5: ML — o crédito vai ganhar força no trimestre t+2 a t+5? ---
+    print("\n=== Sprint 5: ML ===")
+    resultados = executar_ml()
+    if resultados is not None:
+        r = resultados["resumo"]
+        print(f"  linhas por conjunto: {resultados['linhas_por_conjunto']}")
+        print(f"  modelo escolhido (janela móvel 2020–2023): {resultados['modelo_escolhido']} "
+              f"{ {k: round(v, 3) for k, v in resultados['auc_media_janela_movel'].items()} }")
+        print(f"  teste final — AUC modelo {r['auc_modelo']:.3f} | sem Selic {r['auc_sem_selic']:.3f} | "
+              f"volta ao normal {r['auc_volta_ao_normal']:.3f} | supera a volta ao normal: "
+              f"{'sim' if r['supera_volta_ao_normal'] else 'NÃO'}")
+        print(f"  melhores apostas (20/mês): modelo {r['melhores_apostas_modelo']:.1%} | "
+              f"volta ao normal {r['melhores_apostas_volta_ao_normal']:.1%}")
+        for alerta in resultados["alertas"]:
+            print(f"  ⚠ {alerta}")
+        print(f"  previsão set–nov/2026: {config.ARQUIVO_ML_PREVISAO_PRODUCAO}")
 
 
 if __name__ == "__main__":
