@@ -56,6 +56,27 @@ DEFASAGEM_MAXIMA = 6
 MESES_MINIMOS_CORRELACAO = 24
 
 # ---------------------------------------------------------------------
+# Modelo de ML (Sprint 5 — seção 6.1 do architecture.md)
+# ---------------------------------------------------------------------
+# Pergunta: o crédito da combinação vai GANHAR FORÇA no trimestre de t+2 a t+5?
+HORIZONTE_MESES = 3            # um trimestre, o ciclo de ação do decisor
+FOLGA_PUBLICACAO_MESES = 2     # o SCR sai ~60 dias depois: t+1 e t+2 já passaram
+MESES_HISTORICO_ML = 12        # as features olham até 12 meses para trás
+# Datas das origens (ano, mês). O rótulo olha até t+5, então entre o fim do
+# treino e o início do teste há 5 meses de embargo (set/2024 a jan/2025).
+FIM_TREINO_FINAL = (2024, 8)
+INICIO_TESTE = (2025, 2)
+# Anos avaliados na janela móvel (escolha do modelo e estabilidade). Param em
+# 2023 para nenhum rótulo tocar o período do teste final.
+BLOCOS_JANELA_MOVEL = [2020, 2021, 2022, 2023]
+TOP_APOSTAS = 20               # "das 20 combinações mais recomendadas no mês, quantas acertam"
+SEMENTE = 42                   # resultados reprodutíveis
+ARQUIVO_ML_DATASET = DIR_GOLD / "gold_ml_dataset.parquet"
+ARQUIVO_ML_RESULTADOS = DIR_GOLD / "ml_resultados.json"
+ARQUIVO_ML_PREVISOES_TESTE = DIR_GOLD / "ml_previsoes_teste.parquet"
+ARQUIVO_ML_PREVISAO_PRODUCAO = DIR_GOLD / "ml_previsao_producao.parquet"
+
+# ---------------------------------------------------------------------
 # Fonte 1 — SCR.data (Banco Central)
 # ---------------------------------------------------------------------
 SCR_URL_TEMPLATE = "https://www.bcb.gov.br/pda/desig/scrdata_{ano}.zip"
