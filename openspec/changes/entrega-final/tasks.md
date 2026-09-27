@@ -42,4 +42,5 @@
   - Pasta temporária apagada.
 - [x] 5.2 Registrar no README e nesta task as **pendências do grupo**: commits distribuídos entre os integrantes (Requisito 4), ensaio da defesa (cada integrante explica um trecho sorteado) e revisão da declaração de IA.
   - **Registrado no README (seção Sprints) as pendências do grupo:** commits distribuídos entre os integrantes (Requisito 4 — hoje todos os commits são de um autor), ensaio da defesa, revisão da declaração de IA e da tabela de integrantes, e um integrante refazer o "Como rodar do zero" com Python 3.11.
-- [ ] 5.3 `pytest -v`, CI verde no PR para o `develop` e commits atômicos em pt-BR **sem linha de atribuição**.
+- [x] 5.3 `pytest -v`, CI verde no PR para o `develop` e commits atômicos em pt-BR **sem linha de atribuição**.
+  - **Resultado:** 94 testes passando; PR #18 com CI verde em Python 3.11; commits sem linha de atribuição.
