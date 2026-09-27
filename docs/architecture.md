@@ -191,6 +191,12 @@ Por isso:
 - **Bronze:** grava todo registro que conseguiu ler, sujo ou não. Só rejeita o que é **ilegível** — CSV sem as colunas esperadas, resposta da API que não é JSON OData — e registra o motivo em log (não na quarentena, porque não há registro para preservar).
 - **Silver:** aplica as checagens de `src/validation/quality_checks.py` e envia o registro inválido para `data/raw/_quarentena/` com o motivo padronizado. O registro original continua na Bronze.
 
+**Como a quarentena da Silver funciona** *(Sprint 4, 2026-09-27)*:
+
+- Vai para a quarentena só o que é **inválido**: UF fora da lista, valor que não é número/data, valor negativo (exceto o `-1` de `numero_de_operacoes`, que é máscara), data posterior à execução, e leituras ambíguas da Selic (`duplicata_na_chave`).
+- O que está só **fora do escopo** — outras modalidades, meses fora do recorte, versões antigas de meses republicados — **não** vai para a quarentena: é filtrado e contado no relatório da Silver (`data/processed/_relatorio_silver.json`). Não é dado errado, é dado que o projeto não usa.
+- A quarentena de cada tabela Silver (`data/raw/_quarentena/silver_scr.parquet`, `silver_selic.parquet`) é **refeita a cada execução**, como a própria Silver — reprocessar não duplica registros rejeitados.
+
 Motivos padronizados: `uf_invalida`, `data_fora_do_intervalo`, `valor_negativo`, `tipagem_invalida`, `duplicata_na_chave`.
 
 ---
@@ -233,17 +239,20 @@ assert df.duplicated(["ano_mes", "uf", "modalidade"]).sum() == 0
 
 | Coluna | Tipo | Domínio | Origem | Significado |
 |---|---|---|---|---|
-| `ano_mes` | date | jul/2016 a jun/2026 | `data_base` | mês de referência |
+| `ano_mes` | date | jul/2016 a jun/2026, **primeiro dia do mês** | `data_base` | mês de referência (o SCR usa o último dia; normalizado para o primeiro, igual à Selic) |
 | `uf` | string(2) | 27 estados | `uf` | estado do tomador (CEP de residência para PF, sede para PJ) |
 | `modalidade` | string | 8 modalidades de financiamento | `modalidade` | tipo de financiamento |
-| `qtd_operacoes` | integer | ≥ 0 | `numero_de_operacoes` | quantidade de operações |
-| `volume_rs` | decimal | ≥ 0 | `carteira_ativa` | saldo em R$ nominais |
+| `qtd_operacoes` | integer | ≥ 0 | `numero_de_operacoes` | soma das quantidades **divulgadas** do grupo — **limite inferior** da quantidade real (ver nota abaixo) |
+| `linhas_qtd_nao_divulgada` | integer | ≥ 0 | `numero_de_operacoes` | quantas linhas do grupo vieram com `-1` (quantidade escondida pelo BCB) |
+| `volume_rs` | decimal | ≥ 0 | `carteira_ativa` | saldo em R$ nominais — completo, **indicador principal da análise** |
+
+**Quantidade como limite inferior** *(decisão do grupo, 2026-09-27)*. Cada grupo mês × UF × modalidade soma várias linhas do CSV (abertas por cliente, porte, indexador etc.). O BCB esconde a quantidade de algumas linhas com `-1`, mas divulga o saldo delas. No perfil da Bronze real: 28,1% das linhas de financiamento têm `-1`, carregando 10,8% do saldo, e **99,9% dos grupos têm ao menos uma linha com `-1`**. Transformar o grupo em nulo apagaria a quantidade do projeto inteiro. Por isso: `qtd_operacoes` soma só o que foi divulgado (o número real é maior ou igual), `linhas_qtd_nao_divulgada` mostra o quanto está escondido, e a análise usa o **volume** como indicador principal. Ver limitação 9 na seção 11.
 
 ### 5.2. Dicionário — `silver_selic`
 
 | Coluna | Tipo | Domínio | Origem | Significado |
 |---|---|---|---|---|
-| `ano_mes` | date | mensal | `VALDATA` | mês de referência |
+| `ano_mes` | date | jul/2016 a jun/2026, **primeiro dia do mês** | `VALDATA` | mês de referência (leitura mais recente de cada mês; nunca um mês não fechado) |
 | `selic_pct` | decimal | > 0 | `VALVALOR` | Selic acumulada no mês, % a.m. |
 
 ### 5.3. Dicionário — `gold_credito_selic`
@@ -514,6 +523,9 @@ projeto-selic-credito/
 
 7. O Ipeadata **não publica termos de uso** no seu próprio site. As três declarações de licença encontradas em propriedades do Ipea (CC BY 2.5 BR no portal de dados abertos, Licença Padrão Ipea no repositório, Apache 2.0 no Extrator) divergem entre si quanto a uso comercial e obras derivadas. Uso educacional com citação da fonte é permitido nas três, que é o caso deste projeto — mas uma eventual reutilização comercial deste trabalho exigiria consultar o Ipea antes. Consultado em 2026-09-03; detalhes na seção 2.2.
 8. A amostra conferida na Sprint 1 é do ano de **2024**. Os anos anteriores do SCR.data podem ter cabeçalho ou layout diferente — a Sprint 2 confere ano a ano em vez de assumir o layout de 2024.
+
+9. **A quantidade de operações é subestimada.** O BCB esconde a quantidade (`-1`) de 28% das linhas de financiamento; a Silver soma só as divulgadas (`qtd_operacoes` é limite inferior) e registra quantas linhas estavam escondidas. Se a proporção escondida muda de um mês para o outro, a variação da quantidade mistura variação real com variação da máscara — por isso o **volume** é o indicador principal (seção 5.1).
+10. **Nem toda combinação UF × modalidade existe em todos os meses.** No recorte, 42 das 216 combinações têm meses sem nenhuma linha — meses em que não havia nenhuma operação daquele tipo naquele estado. São combinações minúsculas (0,005% do volume). A Silver não preenche esses meses; a Gold só pode calcular variação entre meses consecutivos.
 
 **O que seria preciso para afirmar mais:** série de concessões com abertura por UF (não disponível publicamente), variáveis de controle regionais mensais como renda e emprego, e informação sobre a política de crédito das instituições.
 
