@@ -46,12 +46,12 @@ Módulos de `src/` (`ingestion/`, `transformation/`, `validation/`, `ml/`, `util
 
 ### `src/config.py` é o único lugar com caminho, URL e constante
 
-Nenhum outro arquivo pode ter caminho ou URL chumbado. Constantes que importam: `DIR_BRONZE/SILVER/GOLD/QUARENTENA`, `SCR_URL_TEMPLATE`, `SELIC_URL`, `SCR_COLUNAS_USADAS` (só 5 colunas viram Silver), `UFS_VALIDAS` (27), `ANO_INICIO/MES_INICIO` e `PREFIXO_MODALIDADE`.
+Nenhum outro arquivo pode ter caminho ou URL chumbado. Constantes que importam: `DIR_BRONZE/SILVER/GOLD/QUARENTENA`, `SCR_URL_TEMPLATE`, `SELIC_URL`, `SCR_COLUNAS_USADAS` (só 5 colunas viram Silver), `UFS_VALIDAS` (27), `ANO_INICIO/MES_INICIO`, `ANO_FIM/MES_FIM` e `PREFIXO_MODALIDADE`.
 
 ### Regras de domínio que não podem ser violadas
 
 - **Vocabulário:** o projeto usa `modalidade` (tipo da operação de crédito). `segmento` no SCR.data é o tipo da instituição e **não** é usado — nunca escreva "segmento" para se referir a tipo de financiamento.
-- **Recorte:** julho/2016 em diante. Antes disso o limite de registro do SCR era R$ 1.000 em vez de R$ 200 — quebra de série, dados não comparáveis.
+- **Recorte:** julho/2016 a junho/2026 (120 meses, fim fixo — seção 2.3). Antes de jul/2016 o limite de registro do SCR era R$ 1.000 em vez de R$ 200 — quebra de série, dados não comparáveis.
 - **Filtro:** só as 8 modalidades `LIKE 'Financiamentos%'`.
 - **Chave de cruzamento:** `ano_mes`. A Selic é nacional, então o mesmo valor se repete para as 27 UFs no mês — isso é esperado, não é erro de join. Órfãos dos dois lados devem ser contados e reportados.
 - **Unidade da Selic:** `BM12_TJOVER12` é **% ao mês**, não ao ano.
@@ -74,7 +74,7 @@ A Selic usa **carga incremental por watermark** (última data ingerida em tabela
 
 Variações e lags (`var_qtd_pct`, `var_volume_pct`, `var_selic_pp`, `selic_lag_1..6`) são calculados **separadamente por UF × modalidade**, ordenados por mês; os primeiros meses ficam nulos e não são preenchidos artificialmente. A análise compara **variações, nunca níveis** (correlação espúria).
 
-Para ML (Sprint 5): `t0` é o último mês **publicado** do SCR (há ~30 dias de defasagem), split **temporal**, e o checklist anti-vazamento da seção 6.3 vale item a item. A definição do problema ainda está aberta — preencher a tabela 6.1 do architecture.md **antes** de escrever código de treino.
+Para ML (Sprint 5): `t0` é jun/2026, o último mês do recorte (o SCR publica com ~60 dias de defasagem), split **temporal**, e o checklist anti-vazamento da seção 6.3 vale item a item. A definição do problema ainda está aberta — preencher a tabela 6.1 do architecture.md **antes** de escrever código de treino.
 
 ## Convenções de contribuição
 

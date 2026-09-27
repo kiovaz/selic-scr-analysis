@@ -48,22 +48,63 @@ Aferido em `notebooks/01_exploracao_amostras.ipynb` sobre a amostra de 2024.
 **Uma linha por:** linha do CSV original, como veio da fonte.
 **Chave primária:** `(_source_object, _record_hash)`
 
-| Coluna | Tipo | Domínio | Origem | Significado |
-|---|---|---|---|---|
-| `data_base` | string | `AAAA-MM-DD` | CSV SCR | data de referência do mês |
-| `uf` | string(2) | 27 UFs | CSV SCR | unidade da federação |
-| `modalidade` | string | texto livre | CSV SCR | modalidade de crédito |
-| `numero_de_operacoes` | integer | inteiro (inclui `-1` como máscara) | CSV SCR | quantidade de operações. `-1` é máscara do BCB, tratada na Silver |
-| `carteira_ativa` | decimal | ≥ 0, em reais | CSV SCR | saldo da carteira ativa |
+A Bronze guarda **todas as colunas do CSV, como texto** (`string`), exatamente como vieram —
+sem converter número, data ou separador decimal, e sem descartar registro nem período.
+Validação, recorte (jul/2016 em diante) e tipagem são feitos na Silver (seções 3.3 e 4.1
+do `architecture.md`). Um CSV só é rejeitado se não tiver as 5 colunas usadas (rejeição
+estrutural, registrada em log).
+
+**Colunas usadas pelo projeto** (as únicas que viram Silver — `SCR_COLUNAS_USADAS`):
+
+| Coluna | Tipo na Bronze | Como vem da fonte | Significado |
+|---|---|---|---|
+| `data_base` | string | `AAAA-MM-DD` | data de referência do mês |
+| `uf` | string | sigla da UF (pode vir suja — validada na Silver) | unidade da federação |
+| `modalidade` | string | texto acentuado | modalidade de crédito |
+| `numero_de_operacoes` | string | inteiro em texto; `-1` é máscara do BCB | quantidade de operações. A Silver converte `-1` em nulo |
+| `carteira_ativa` | string | decimal com **vírgula** (ex.: `1234,56`), em reais | saldo da carteira ativa. A Silver converte com `decimal=","` |
+
+**Demais colunas** (preservadas na Bronze, não usadas pelo projeto — todas `string`, na
+ordem em que vêm no CSV; conferido na execução real de 2026-09-26 sobre o ZIP de 2024):
+
+`segmento`, `cliente`, `cnae_ocupacao`, `porte`, `submodalidade`, `origem`, `indexador`,
+`a_vencer_ate_90_dias`, `a_vencer_de_91_ate_360_dias`, `a_vencer_de_361_ate_1080_dias`,
+`a_vencer_de_1081_ate_1800_dias`, `a_vencer_de_1801_ate_5400_dias`, `a_vencer_acima_de_5400_dias`,
+`carteira_a_vencer`, `vencido_de_15_ate_90_dias`, `vencido_acima_de_90_dias`, `carteira_vencida`,
+`carteira_inadimplencia`, `ativo_problematico`.
+
+São 24 colunas de origem no total (5 usadas + 19 acima). **Atenção ao vocabulário:** `segmento`
+é o tipo da **instituição financeira**, não o tipo do financiamento — o projeto usa
+`modalidade` e não usa `segmento`.
 
 ### `bronze_selic`
-**Uma linha por:** data da série.
+**Uma linha por:** registro devolvido pela API (a série inteira, desde jan/1974).
 **Chave primária:** `(_source_object, _record_hash)`
 
-| Coluna | Tipo | Domínio | Origem | Significado |
-|---|---|---|---|---|
-| `VALDATA` | date | ≥ jul/2016 | API Ipeadata | data de referência da série |
-| `VALVALOR` | decimal | % ao mês | API Ipeadata | taxa Selic acumulada no mês |
+Todos os campos devolvidos pela API, **como texto**, sem conversão e sem recorte temporal.
+A Bronze só rejeita uma resposta que não é JSON OData legível (registrado em log).
+
+| Coluna | Tipo na Bronze | Como vem da fonte | Significado |
+|---|---|---|---|
+| `SERCODIGO` | string | `BM12_TJOVER12` | código da série no Ipeadata |
+| `VALDATA` | string | data ISO com fuso (ex.: `2024-01-01T00:00:00-02:00`) | data de referência. A Silver converte para mês |
+| `VALVALOR` | string | número com ponto (ex.: `0.97`) | taxa Selic acumulada no mês, **% ao mês** |
+| `NIVNOME` | string | texto (geralmente vazio) | nível geográfico |
+| `TERCODIGO` | string | texto (geralmente vazio) | código territorial |
+
+### Como ler a Bronze
+
+As tabelas Bronze são pastas Parquet particionadas por `_ingestion_date`
+(`data/raw/bronze_scr/_ingestion_date=AAAA-MM-DD/*.parquet`). Para ler:
+
+```python
+pd.read_parquet(config.DIR_BRONZE / "bronze_scr", ignore_prefixes=["."])
+```
+
+O `ignore_prefixes=["."]` é **obrigatório**: por padrão o pyarrow ignora pastas cujo
+nome começa com `_` ou `.`, e a pasta da partição começa com `_`. Sem o parâmetro, a
+leitura devolve uma tabela **vazia, sem erro**. A coluna `_ingestion_date` volta como
+categoria (texto `AAAA-MM-DD`).
 
 ### Metadados técnicos (presentes nas duas tabelas Bronze)
 
@@ -87,7 +128,7 @@ Aferido em `notebooks/01_exploracao_amostras.ipynb` sobre a amostra de 2024.
 
 | Coluna | Tipo | Domínio | Origem | Significado |
 |---|---|---|---|---|
-| `ano_mes` | date | ≥ jul/2016 | `data_base` | mês de referência |
+| `ano_mes` | date | jul/2016 a jun/2026 | `data_base` | mês de referência |
 | `uf` | string(2) | 27 estados | `uf` | estado do tomador (CEP de residência para PF, sede para PJ) |
 | `modalidade` | string | 8 modalidades de financiamento | `modalidade` | tipo de financiamento |
 | `qtd_operacoes` | integer | ≥ 0 **ou nulo** | `numero_de_operacoes` | quantidade de operações. A origem traz `-1` como máscara de valor não divulgado — a Silver converte `-1` em **nulo**, nunca em zero: zero afirmaria que não houve operação, o que não é o que a fonte diz |
@@ -100,7 +141,7 @@ Aferido em `notebooks/01_exploracao_amostras.ipynb` sobre a amostra de 2024.
 | Coluna | Tipo | Domínio | Origem | Significado |
 |---|---|---|---|---|
 | `ano_mes` | date | mensal | `VALDATA` | mês de referência |
-| `selic_pct` | decimal | > 0 | `VALVALOR` | Selic acumulada no mês, **% ao mês**. O mês corrente incompleto é descartado na ingestão |
+| `selic_pct` | decimal | > 0 | `VALVALOR` | Selic acumulada no mês, **% ao mês**. O mês corrente incompleto é descartado **na Silver** (vai para a quarentena) |
 
 ---
 
