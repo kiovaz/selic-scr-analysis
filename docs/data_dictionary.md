@@ -61,7 +61,7 @@ estrutural, registrada em log).
 | `data_base` | string | `AAAA-MM-DD` | data de referência do mês |
 | `uf` | string | sigla da UF (pode vir suja — validada na Silver) | unidade da federação |
 | `modalidade` | string | texto acentuado | modalidade de crédito |
-| `numero_de_operacoes` | string | inteiro em texto; `-1` é máscara do BCB | quantidade de operações. A Silver converte `-1` em nulo |
+| `numero_de_operacoes` | string | inteiro em texto; `-1` é máscara do BCB | quantidade de operações. Na Silver, as linhas com `-1` não entram na soma de `qtd_operacoes` (que vira limite inferior) e são contadas em `linhas_qtd_nao_divulgada` |
 | `carteira_ativa` | string | decimal com **vírgula** (ex.: `1234,56`), em reais | saldo da carteira ativa. A Silver converte com `decimal=","` |
 
 **Demais colunas** (preservadas na Bronze, não usadas pelo projeto — todas `string`, na
@@ -122,26 +122,34 @@ categoria (texto `AAAA-MM-DD`).
 
 ## Camada Silver
 
-### `silver_scr`
+Reconstruída inteira a partir da Bronze a cada execução (`src/transformation/`). Usa só a
+**versão mais recente** de cada CSV do SCR e a **leitura mais recente** de cada mês da Selic,
+e só o recorte **jul/2016 a jun/2026**. O que fica fora do escopo é filtrado e contado em
+`data/processed/_relatorio_silver.json`; o que é inválido vai para a quarentena.
+
+### `silver_scr` — `data/processed/silver_scr.parquet`
 **Uma linha por:** mês × estado × modalidade de financiamento.
 **Chave primária:** `(ano_mes, uf, modalidade)`
 
 | Coluna | Tipo | Domínio | Origem | Significado |
 |---|---|---|---|---|
-| `ano_mes` | date | jul/2016 a jun/2026 | `data_base` | mês de referência |
+| `ano_mes` | date | jul/2016 a jun/2026, primeiro dia do mês | `data_base` | mês de referência |
 | `uf` | string(2) | 27 estados | `uf` | estado do tomador (CEP de residência para PF, sede para PJ) |
-| `modalidade` | string | 8 modalidades de financiamento | `modalidade` | tipo de financiamento |
-| `qtd_operacoes` | integer | ≥ 0 **ou nulo** | `numero_de_operacoes` | quantidade de operações. A origem traz `-1` como máscara de valor não divulgado — a Silver converte `-1` em **nulo**, nunca em zero: zero afirmaria que não houve operação, o que não é o que a fonte diz |
-| `volume_rs` | decimal | ≥ 0 | `carteira_ativa` | saldo da carteira em R$ nominais (**reais**, confirmado na Sprint 1). É **saldo**, não concessão do mês |
+| `modalidade` | string | 8 modalidades de financiamento | `modalidade` | tipo de financiamento (nome exatamente como na fonte) |
+| `qtd_operacoes` | integer | ≥ 0 | `numero_de_operacoes` | soma das quantidades **divulgadas** do grupo — **limite inferior**. Linhas com `-1` (quantidade escondida pelo BCB) não entram na soma, nem como zero |
+| `linhas_qtd_nao_divulgada` | integer | ≥ 0 | `numero_de_operacoes` | quantas linhas do grupo tinham `-1`. Se for maior que zero, a quantidade real é maior que `qtd_operacoes` |
+| `volume_rs` | decimal | ≥ 0 | `carteira_ativa` | saldo da carteira em R$ nominais (**reais**), soma de todas as linhas do grupo. É **saldo**, não concessão do mês. Completo — é o indicador principal |
+| `_load_id` | string | UUID | — | execução da Silver que gerou a linha |
 
-### `silver_selic`
+### `silver_selic` — `data/processed/silver_selic.parquet`
 **Uma linha por:** mês.
 **Chave primária:** `(ano_mes)`
 
 | Coluna | Tipo | Domínio | Origem | Significado |
 |---|---|---|---|---|
-| `ano_mes` | date | mensal | `VALDATA` | mês de referência |
-| `selic_pct` | decimal | > 0 | `VALVALOR` | Selic acumulada no mês, **% ao mês**. O mês corrente incompleto é descartado **na Silver** (vai para a quarentena) |
+| `ano_mes` | date | jul/2016 a jun/2026, primeiro dia do mês | `VALDATA` | mês de referência |
+| `selic_pct` | decimal | > 0 | `VALVALOR` | Selic acumulada no mês, **% ao mês**. Usa a leitura mais recente do mês; um mês ainda não fechado nunca entra (com o recorte fixo em jun/2026, os meses posteriores ficam fora do recorte — são filtrados, não vão para a quarentena) |
+| `_load_id` | string | UUID | — | execução da Silver que gerou a linha |
 
 ---
 
@@ -198,6 +206,11 @@ Um item por ano do SCR:
 ---
 
 ## Quarentena
+
+Arquivos da Silver em `data/raw/_quarentena/`: `silver_scr.parquet` e `silver_selic.parquet`,
+**refeitos a cada execução** (a Silver é reconstruída inteira; reprocessar não duplica
+registros rejeitados). Só entra dado inválido — o que está fora do escopo é filtrado e contado
+no relatório da Silver.
 
 **Uma linha por:** registro rejeitado.
 
