@@ -234,6 +234,15 @@ def executar_ml(base=None, excluidas=None):
         if base is None:
             return None
 
+    # Com poucos anos de dados (ex.: run_pipeline.py --anos 2024) nenhuma
+    # combinação tem os 120 meses da coorte: não há o que treinar. O ML é
+    # pulado com um aviso, em vez de quebrar o pipeline.
+    contagem = base["conjunto"].value_counts()
+    if contagem.get("desenvolvimento", 0) == 0 or contagem.get("teste", 0) == 0:
+        logger.warning("ML pulado: dados insuficientes (a coorte exige os 120 meses do recorte; "
+                       "rode o pipeline completo, sem --anos).")
+        return None
+
     blocos = janela_movel(base)
     escolhido, medias = escolher_modelo(blocos)
     resultado_teste, previsoes_teste = teste_final(base, escolhido)

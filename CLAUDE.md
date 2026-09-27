@@ -17,12 +17,14 @@ pytest tests/test_config.py        # um arquivo
 pytest tests/test_config.py::test_existem_27_ufs -v   # um teste
 
 python scripts/baixar_amostras.py  # baixa amostra real das duas fontes e imprime diagnóstico (NÃO faz ingestão; o ZIP do SCR tem ~176 MB)
-python scripts/run_pipeline.py     # pipeline ponta a ponta; cada sprint acrescenta uma etapa aqui
+python scripts/run_pipeline.py     # pipeline completo: Bronze → Silver → Gold → análise → ML → decisão (1ª vez ~50 min; depois poucos minutos)
+python scripts/run_pipeline.py --anos 2024   # teste rápido com um só ano do SCR
+python scripts/conferir_bronze.py  # contagens da Bronze e duplicatas na chave (demonstração de idempotência)
 
 docker compose run --rm pipeline   # opcional (ver ressalva 7.3 do architecture.md)
 ```
 
-CI (`.github/workflows/ci.yml`) roda `pytest -v` em todo push e PR para `main`, com Python 3.11.
+CI (`.github/workflows/ci.yml`) roda `pytest -v` em todo push e PR para `main` e `develop`, com Python 3.11. Os testes isolam `data/` em pasta temporária e bloqueiam a rede (`tests/conftest.py`).
 
 Scripts em `scripts/` fazem `sys.path.insert(0, raiz)` antes de `from src import config` — é assim que eles enxergam o pacote. Rode-os sempre a partir da raiz do projeto.
 
@@ -42,7 +44,7 @@ SCR.data (BCB, ZIP→CSV ';')  ─┐
 Selic (Ipeadata, API OData)  ─┘        (cru)            (limpo, tipado)         (pronto p/ pergunta)
 ```
 
-Módulos de `src/` (`ingestion/`, `transformation/`, `validation/`, `ml/`, `utils/`) hoje são pacotes vazios — o projeto está na **Sprint 1** e é construído sprint a sprint (plano na seção 8 do architecture.md). Os nomes de arquivo esperados em cada um estão na seção 9.
+As **Sprints 1 a 6 estão concluídas** (plano na seção 8 do architecture.md; decisões na seção 13). Módulos: `src/ingestion/` (loaders SCR e Selic, tabelas de controle, metadados), `src/validation/` (checagens e quarentena), `src/transformation/` (Silver e Gold), `src/analise/` (correlações e gráficos), `src/ml/` (base de ML, treino e decisão). Pendente: publicação da Gold na nuvem (NeonDB + Next.js, decisão 12).
 
 ### `src/config.py` é o único lugar com caminho, URL e constante
 
@@ -80,6 +82,7 @@ Para ML (Sprint 5): `t0` é jun/2026, o último mês do recorte (o SCR publica c
 
 - `main` estável; branch de feature por membro; merge via Pull Request.
 - Commits atômicos no formato `tipo: descrição breve` (`feat:`, `fix:`, `docs:`, `test:`); o histórico atual usa emoji antes do tipo (`✨ feat:`, `📄 docs:`, `🔧 chore:`).
+- **Sem linha de atribuição** em commits e PRs (nada de `Co-Authored-By` nem "Generated with"). O uso de IA é declarado só no README (Requisito 9).
 - Validações de qualidade são funções simples em `src/validation/` cobertas por pytest — Great Expectations/Pandera foram deliberadamente descartados (seção 7.2).
 
 ## Regras deste projeto

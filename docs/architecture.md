@@ -10,11 +10,11 @@
 
 **Problema:** entender se — e o quanto — variações na taxa Selic estão associadas ao saldo de financiamentos no Brasil, com granularidade por estado (UF) e por **modalidade** de crédito.
 
-**Decisor final:** diretoria de crédito de uma cooperativa de crédito ou financeira regional, que precisa decidir em quais estados e modalidades expandir ou reduzir a oferta de financiamento a cada trimestre.
+**Decisor final:** diretoria de crédito de uma **instituição financeira de atuação nacional**, que decide a cada trimestre em quais estados e modalidades expandir ou reduzir a oferta de financiamento. *(Decisão do grupo, 2026-09-27 — antes: "cooperativa de crédito ou financeira regional", que não combinava com um estudo dos 27 estados. O enunciado exige um decisor concreto; ver seção 10.)*
 
-**Escopo:** pipeline de dados completo (Bronze → Silver → Gold) + análise estatística de associação + modelo preditivo (definição na Sprint 5, ver seção 6).
+**Escopo:** pipeline de dados completo (Bronze → Silver → Gold) + análise estatística de associação (seção 5.4) + modelo preditivo (seção 6) + recomendação de decisão para o trimestre (seção 10).
 
-**Onde os dados vivem:** filesystem local do projeto, pasta `data/` no `.gitignore`. Sem cloud, sem DVC — decisão consciente pelo escopo acadêmico.
+**Onde os dados vivem:** filesystem local do projeto, pasta `data/` no `.gitignore`. Sem DVC. A publicação da Gold em um banco na nuvem com um front (NeonDB + Next.js na Vercel) foi aprovada e fica para uma sprint final (decisão 12 da seção 13) — até lá, tudo é local.
 
 ### Nota sobre vocabulário
 
@@ -45,6 +45,12 @@ Em nenhum documento, apresentação ou código do projeto a palavra "segmento" d
 
 **Frase de fechamento (template obrigatório da entrega):**
 > "Cruzando o SCR.data e a Selic, identificamos que \_\_\_\_. Recomendamos que \_\_\_\_ faça \_\_\_\_ nos próximos \_\_\_\_, priorizando \_\_\_\_. Se agir, o ganho esperado é \_\_\_\_; se errarmos, o custo é \_\_\_\_."
+
+**Frase preenchida** (Sprint 6, 2026-09-27 — números gerados pelo pipeline em `data/final/frase_fechamento.json`, impressos por `scripts/run_pipeline.py`):
+
+> "Cruzando o **SCR.data (Banco Central)** e a **Selic meta do Copom (Ipeadata)**, identificamos que **o saldo do crédito imobiliário anda junto com a Selic de 4 meses antes (Spearman +0,42), mas a Selic não antecipa o trimestre seguinte — o que antecipa é o ritmo recente do próprio crédito em cada estado**. Recomendamos que **a diretoria de crédito de uma instituição financeira de atuação nacional** faça **a expansão da oferta de financiamento nas 20 combinações estado × modalidade com maior probabilidade de o crédito ganhar força** nos próximos **3 meses (set–nov/2026)**, priorizando **as de maior saldo dentro da lista**. Se agir, o ganho esperado é **acertar ~16,5 de 20 expansões por trimestre (82,5%), contra ~15,0 da regra simples e ~10,0 ao acaso**; se errarmos, o custo é **~3,5 expansões por trimestre em mercados que estão perdendo força — capital, captação e equipe comercial alocados sem retorno no trimestre**."
+
+Detalhes, custos e regra de decisão na seção 10; ressalvas na seção 11.
 
 > **Por que "saldo" e não "novos financiamentos concedidos":** o SCR.data publica a carteira ativa, que é o saldo devedor no fim do mês, não o valor contratado no mês. A variação mensal do saldo é usada como aproximação de fluxo, e essa limitação está declarada na seção 11. A pergunta precisa refletir o dado que existe.
 
@@ -164,7 +170,7 @@ A Bronze continua guardando tudo o que as fontes entregam (inclusive meses fora 
 | Forma | Fonte | Detalhes obrigatórios |
 |---|---|---|
 | **Arquivo** | SCR.data | Baixa o ZIP, descompacta, lê o CSV tratando encoding, separador `;` e tipagem explícita |
-| **API REST** | Ipeadata (Selic) | Requisição com timeout, tratamento de erro e retry com backoff |
+| **API REST** | Ipeadata (Selic) | Requisição com timeout, tratamento de erro e retry com backoff. **Sem paginação:** a API do Ipeadata não oferece paginação — `$top` e `$skip` são ignorados e a série inteira vem numa resposta (~11 mil registros, conferido em 2026-09-27). O Requisito 2 do enunciado ("API com paginação") é atendido na medida do que a fonte permite; o volume é pequeno e a carga incremental (watermark) evita regravar o que já existe |
 | **Carga incremental** | Ipeadata (Selic) | Guarda a última data já ingerida numa tabela de controle (watermark). A API do Ipeadata **ignora** `$filter`, `$top` e `$orderby` (conferido em 2026-09-27: devolve sempre a série inteira, ~60 KB), então a carga baixa a série e **grava só o que falta**: registros a partir do watermark cujo hash ainda não está na Bronze |
 | **Controle de versão** | SCR.data | Antes de baixar, lê o `ETag` do ZIP com uma requisição `HEAD` (sem baixar) e compara com a tabela de controle. Se o ZIP mudou, compara o CRC32 e a data de cada CSV no índice do ZIP e ingere só os CSVs novos ou alterados |
 
@@ -350,6 +356,8 @@ Respondido na Sprint 5 (2026-09-27), com a evidência de cada item. Detalhes em 
 - [x] **Toda feature existia antes do t0?** Sim — as features de uma origem t usam só meses ≤ t; a produção usa só dados até jun/2026. *Evidência:* `src/ml/dataset.py` (só `shift` para trás nas features); teste `test_mexer_no_futuro_nao_muda_as_features`.
 - [x] **As agregações (lags, médias móveis) foram calculadas apenas com dados anteriores ao t0 de cada observação?** Sim — variações, aceleração, participação e Selic partem da própria origem para trás. *Evidência:* o mesmo teste (alterar volume e Selic depois da origem não muda nenhuma feature).
 - [x] **O split respeita a ordem temporal? Nenhum mês de teste aparece antes de um mês de treino?** Sim, com **embargo de 5 meses** (set/2024–jan/2025) porque o rótulo olha até t+5; na janela móvel, cada ano é treinado só até julho do ano anterior. *Evidência:* `marcar_conjunto` e `janela_movel`; teste `test_conjuntos_sem_sobreposicao_e_chave_unica`.
+- [x] **O split respeita tempo e grupo? Nenhuma entidade aparece em treino e teste ao mesmo tempo?** *(pergunta do enunciado)* O split é **temporal**. As mesmas 174 combinações aparecem em treino e em teste **de propósito**: o objetivo é prever o futuro dessas mesmas entidades, não generalizar para estados novos (seção 6.2). O que não pode se misturar é o **tempo**, e o embargo de 5 meses garante que nenhum mês usado por um rótulo de treino esteja no período de teste. Split por grupo não se aplica. *Evidência:* `test_conjuntos_sem_sobreposicao_e_chave_unica`.
+- [x] **Imputadores foram ajustados somente no treino?** *(pergunta do enunciado)* **Não há imputação.** Origens sem 12 meses de histórico são excluídas da base, e as 42 combinações com meses faltando ficam fora da coorte — nada é preenchido. *Evidência:* `dropna` em `montar_base` e `definir_coorte` (`src/ml/dataset.py`).
 - [x] **Scalers e encoders foram ajustados (`fit`) somente no treino, com apenas `transform` em teste?** Sim — pré-processamento e modelo num único `Pipeline`, ajustado só nas linhas de treino de cada avaliação. *Evidência:* `montar_pipeline` em `src/ml/treino.py`; teste `test_padronizacao_ajustada_so_no_treino`.
 - [x] **A coluna que dá origem ao label foi removida das features?** Sim — o volume de t+2 e t+5 só aparece no rótulo; a quantidade de operações nem entra (limite inferior, 5.1). *Evidência:* `FEATURES_NUMERICAS` em `src/ml/dataset.py`.
 
@@ -548,12 +556,17 @@ projeto-selic-credito/
 
 ## 10. Decisão de Negócio
 
-- **Decisor:** diretoria de crédito de uma cooperativa de crédito ou financeira regional.
-- **Ação possível:** aumentar ou reduzir a oferta de financiamento por estado e modalidade no próximo trimestre.
-- **Custo de falso positivo** (expandir onde o crédito vai encolher): capital parado, equipe comercial alocada, meta não batida, risco de afrouxar o padrão de concessão para preencher volume.
-- **Custo de falso negativo** (não expandir onde o crédito vai crescer): receita perdida, espaço cedido ao concorrente, custo de reentrar depois.
-- **Limiar de decisão:** [PENDENTE — Sprint 6, definir após o treino, com base no trade-off precisão/recall que faça sentido para os custos acima. O limiar tende a ser assimétrico, porque o custo do falso positivo é imediato e o do falso negativo é de oportunidade.]
-- **Frase de decisão final:** template na seção 1, a preencher com os números reais do pipeline.
+- **Decisor:** diretoria de crédito de uma **instituição financeira de atuação nacional** (decisão 13, seção 13).
+- **Ação possível:** a cada trimestre, **expandir** (ou manter, ou reduzir) a oferta de financiamento em combinações estado × modalidade — orçamento de captação e marketing, metas regionais e alocação da equipe comercial.
+- **O que o modelo entrega:** para cada uma das 174 combinações, a probabilidade de o crédito **ganhar força** no trimestre que ainda está pela frente quando o dado é publicado (seção 6.1).
+- **Custo de falso positivo** (expandir onde o crédito vai perder força): orçamento e captação alocados sem retorno no trimestre, equipe comercial deslocada, meta regional não batida e pressão para afrouxar o padrão de concessão para "preencher" volume. **É imediato e fica no balanço do trimestre.**
+- **Custo de falso negativo** (não expandir onde o crédito vai ganhar força): receita não capturada e espaço cedido a concorrentes, com custo de reentrada depois. **É de oportunidade e diluído no tempo.**
+- **Limiar adotado** (decisão 14): **a cada trimestre, expandir nas 20 combinações com maior probabilidade** — uma lista de tamanho fixo, em vez de uma nota mínima.
+  - **Por quê — ligando a métrica à consequência:** como o falso positivo custa mais no curto prazo, a regra privilegia a **precisão** (acertar onde se expande) e aceita um recall baixo (deixar oportunidades de fora). No teste (fev/2025–jan/2026), as 20 maiores notas de cada mês acertaram **82,5%** — ~16,5 expansões certas e ~3,5 erradas por trimestre —, contra **75,0%** da regra simples ("volta ao normal") e **50,1%** ao acaso.
+  - Uma lista fixa combina com a capacidade de execução de uma diretoria (número de frentes, não uma probabilidade) e não depende de as notas estarem calibradas.
+  - **Sensibilidade** (teste, `data/final/sensibilidade_limiar.parquet`): nota ≥ 0,5 recomendaria ~107 combinações/mês com 67,7% de acerto; ≥ 0,8, ~48 com 76,2%; ≥ 0,9, ~15 com 84,8%; listas de 10 e 40 acertaram 79,2% e 77,5%. A lista de 20 equilibra acerto e alcance.
+- **Recomendação para set–nov/2026** (`data/final/recomendacao_trimestre.parquet`): as 20 combinações a expandir somam **R$ 557,5 bilhões** de saldo em jun/2026; a lista também traz as 20 com maior risco de perder força, como alerta. **Leitura:** 9 das 20 são financiamentos **rurais** — coerente com o plantio da safra de verão no período, que o modelo capta pelo ritmo recente do crédito (sazonalidade não é modelada explicitamente, limitação 11). As notas mais altas da lista estão em mercados **pequenos** (exportação e importação em estados menores); por isso a recomendação é **priorizar as de maior saldo dentro da lista** (limitação 13).
+- **Frase de decisão final:** preenchida na seção 1, com os números do pipeline.
 
 ---
 
@@ -572,6 +585,10 @@ projeto-selic-credito/
 9. **A quantidade de operações é subestimada.** O BCB esconde a quantidade (`-1`) de 28% das linhas de financiamento; a Silver soma só as divulgadas (`qtd_operacoes` é limite inferior) e registra quantas linhas estavam escondidas. Se a proporção escondida muda de um mês para o outro, a variação da quantidade mistura variação real com variação da máscara — por isso o **volume** é o indicador principal (seção 5.1).
 10. **Nem toda combinação UF × modalidade existe em todos os meses.** No recorte, 42 das 216 combinações têm meses sem nenhuma linha — meses em que não havia nenhuma operação daquele tipo naquele estado. São combinações minúsculas (0,005% do volume). A Silver não preenche esses meses; a Gold só pode calcular variação entre meses consecutivos.
 11. **Sazonalidade não é tratada.** O crédito tem padrão sazonal (por exemplo, o rural acompanha a safra) e a Selic não; isso pode diluir a associação medida. Um ajuste sazonal fica como evolução possível.
+12. **A Selic não antecipa o trimestre seguinte.** O modelo com e sem as variáveis da Selic tem desempenho equivalente (seção 6.5): ela está associada ao crédito (seção 5.4), mas não ajuda a prever se o crédito de um estado vai ganhar força nos 3 meses seguintes.
+13. **Probabilidades extremas em mercados pequenos.** As maiores e menores notas do modelo aparecem em combinações de saldo pequeno (exportação, importação, títulos em estados menores), que oscilam muito. Por isso a lista de recomendação mostra o saldo de cada combinação.
+14. **Avaliação final em 12 meses.** O teste final cobre fev/2025–jan/2026, um único regime de juros altos; a janela móvel (2020–2023) dá a leitura de estabilidade, mas o desempenho futuro pode variar.
+15. **Rótulos sobrepostos e choques comuns.** Previsões de meses seguidos compartilham meses do trimestre futuro, e todas as combinações sofrem os mesmos choques no mês — as métricas parecem mais firmes do que são (seção 6, notebook 03).
 
 **O que seria preciso para afirmar mais:** série de concessões com abertura por UF (não disponível publicamente), variáveis de controle regionais mensais como renda e emprego, e informação sobre a política de crédito das instituições.
 
@@ -604,6 +621,8 @@ Decisões tomadas pelo grupo ao longo das sprints. O detalhe fica na seção ind
 | 9 | 2026-09-27 | **Selic meta do Copom** (`BM366_TJOVER366`, % a.a., corte no último dia do mês) no lugar da acumulada no mês (`BM12_TJOVER12`, % a.m.) | A série antiga variava com os dias úteis (correlação 0,79) e chegou a subir quando o Copom cortou | 2.2 |
 | 11 | 2026-09-27 | **ML: prever se o crédito "ganha força"** (cresce mais no trimestre t+2→t+5 do que nos últimos 3 meses), nas 174 combinações completas, avaliado com e sem a Selic | Liga o modelo ao ciclo do crédito onde a Selic atua; a folga de 2 meses respeita o atraso de publicação; a versão "cresce mais que o Brasil" cancelava o efeito da Selic | 6.1 |
 | 12 | 2026-09-27 | **Publicação da Gold** num banco NeonDB com front Next.js na Vercel — **adiada para a sprint final**; a etapa de envio será opcional (só roda com a string de conexão configurada) | Mostrar os dados na entrega; o tech lead tem experiência com a stack. Exige revisar a decisão "sem cloud" (seção 0) quando for implementada | a registrar na sprint final |
+| 13 | 2026-09-27 | **Decisor:** diretoria de crédito de uma instituição financeira de **atuação nacional** (antes: cooperativa ou financeira regional) | O enunciado exige um decisor concreto; uma instituição regional não escolhe entre os 27 estados | 0, 10 |
+| 14 | 2026-09-27 | **Regra de decisão:** a cada trimestre, expandir nas **20 combinações com maior probabilidade** de ganhar força (em vez de uma nota mínima fixa) | O erro de expandir onde o crédito perde força tem custo imediato — vale ser seletivo; no teste, as 20 maiores notas acertaram 82,5% (regra simples: 75%); lista fixa combina com a capacidade de execução e não depende da calibração das notas | 10 |
 
 ---
 

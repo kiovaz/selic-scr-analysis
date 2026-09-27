@@ -77,6 +77,19 @@ ARQUIVO_ML_PREVISOES_TESTE = DIR_GOLD / "ml_previsoes_teste.parquet"
 ARQUIVO_ML_PREVISAO_PRODUCAO = DIR_GOLD / "ml_previsao_producao.parquet"
 
 # ---------------------------------------------------------------------
+# Decisão (Sprint 6 — seção 10 do architecture.md)
+# ---------------------------------------------------------------------
+# Regra adotada pelo grupo: a cada trimestre, expandir nas 20 combinações com
+# maior probabilidade de ganhar força (lista fixa, não nota mínima).
+TOP_RECOMENDACAO = 20
+# Alternativas mostradas na tabela de sensibilidade (calculada no teste).
+LIMIARES_SENSIBILIDADE = [0.5, 0.6, 0.7, 0.8, 0.9]
+TAMANHOS_LISTA = [10, 20, 40]
+ARQUIVO_RECOMENDACAO = DIR_GOLD / "recomendacao_trimestre.parquet"
+ARQUIVO_SENSIBILIDADE = DIR_GOLD / "sensibilidade_limiar.parquet"
+ARQUIVO_FRASE = DIR_GOLD / "frase_fechamento.json"
+
+# ---------------------------------------------------------------------
 # Fonte 1 — SCR.data (Banco Central)
 # ---------------------------------------------------------------------
 SCR_URL_TEMPLATE = "https://www.bcb.gov.br/pda/desig/scrdata_{ano}.zip"

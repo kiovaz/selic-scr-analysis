@@ -3,7 +3,8 @@ Executa o pipeline inteiro, de ponta a ponta.
 
 Cada sprint acrescenta uma etapa aqui. Hoje: prepara as pastas e faz a
 ingestão Bronze do SCR e da Selic (Sprints 2 e 3) e constrói a Silver,
-a Gold e a análise (Sprint 4) e o modelo de ML (Sprint 5).
+a Gold e a análise (Sprint 4) o modelo de ML (Sprint 5) e a
+recomendação de decisão (Sprint 6).
 
 Como rodar (da raiz do projeto):
     python scripts/run_pipeline.py              # todos os anos (~2 GB de download)
@@ -26,6 +27,7 @@ from src.transformation.silver_selic import construir_silver_selic
 from src.transformation.gold_credito_selic import construir_gold
 from src.analise.correlacao import executar_analise
 from src.ml.treino import executar_ml
+from src.ml.decisao import executar_decisao
 
 
 def main():
@@ -118,6 +120,32 @@ def main():
         for alerta in resultados["alertas"]:
             print(f"  ⚠ {alerta}")
         print(f"  previsão set–nov/2026: {config.ARQUIVO_ML_PREVISAO_PRODUCAO}")
+
+        # --- Sprint 6: decisão — frase de fechamento com os números do pipeline ---
+        print("\n=== Sprint 6: Decisão ===")
+        n = executar_decisao()
+        if n is not None:
+            assoc = n["associacao_mais_forte_sprint4"]
+            print(f"  Regra: expandir nas {n['tamanho_lista']} combinações com maior probabilidade de ganhar força.")
+            print(f"  Frase de fechamento (números deste pipeline):")
+            print(f"    Cruzando o SCR.data (BCB) e a Selic meta do Copom (Ipeadata), identificamos que o crédito "
+                  f"da modalidade \"{assoc['modalidade']}\" anda junto com a Selic de {assoc['defasagem_meses']} meses antes "
+                  f"(Spearman {assoc['spearman']:+.2f}), mas a Selic não antecipa o trimestre seguinte "
+                  f"(AUC com Selic {n['auc_modelo']:.3f} × sem Selic {n['auc_sem_selic']:.3f}); o que antecipa é "
+                  f"o ritmo recente do próprio crédito.")
+            print(f"    Recomendamos que a diretoria de crédito de uma instituição financeira de atuação nacional "
+                  f"expanda a oferta de financiamento nas {n['tamanho_lista']} combinações estado × modalidade com "
+                  f"maior probabilidade de ganhar força nos próximos 3 meses ({n['trimestre_recomendado']}), "
+                  f"priorizando as de maior saldo dentro da lista.")
+            print(f"    Se agir, o ganho esperado é acertar ~{n['acertos_esperados_modelo']:.1f} de "
+                  f"{n['tamanho_lista']} expansões por trimestre ({n['precisao_lista_modelo']:.1%}), contra "
+                  f"~{n['acertos_esperados_regra_simples']:.1f} da regra simples e ~{n['acertos_esperados_acaso']:.1f} "
+                  f"ao acaso; se errarmos, o custo é ~{n['erros_esperados_modelo']:.1f} expansões por trimestre em "
+                  f"mercados que estão perdendo força.")
+            print(f"  Lista: {config.ARQUIVO_RECOMENDACAO}")
+    else:
+        print("  ML e decisão pulados: dados insuficientes (a coorte exige os 120 meses do recorte).")
+        print("  Rode o pipeline completo, sem --anos, para treinar o modelo e gerar a recomendação.")
 
 
 if __name__ == "__main__":
