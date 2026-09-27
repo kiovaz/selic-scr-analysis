@@ -5,7 +5,7 @@
 
 ## 2. Configuração e dependência
 
-- [x] 2.1 Acrescentar `scipy==1.18.1` ao `requirements.txt` (a versão instalada, conferida com `pip show scipy`). Acrescentar a `src/config.py`: `DEFASAGEM_MAXIMA = 6`, `MESES_MINIMOS_CORRELACAO = 24`, `ARQUIVO_GOLD`, `ARQUIVO_ANALISE_BRASIL`, `ARQUIVO_ANALISE_UF`, `ARQUIVO_RELATORIO_GOLD` (em `DIR_GOLD`) e `DIR_FIGURAS = RAIZ / "docs" / "figuras"`, com comentários; isolar os novos caminhos de dados em `tests/conftest.py` (as figuras também, para os testes não sobrescreverem as reais). Verificar: `pip install -r requirements.txt` sem mudanças e `pytest tests/test_config.py` verde.
+- [x] 2.1 Acrescentar `scipy==1.17.1` ao `requirements.txt` (primeiro foi fixada a 1.18.1 do `.venv` local, que roda Python 3.14, e o CI em Python 3.11 falhou: a 1.18 exige 3.12+; 1.17.1 é a última compatível com 3.11 e com o scikit-learn 1.9.0). Acrescentar a `src/config.py`: `DEFASAGEM_MAXIMA = 6`, `MESES_MINIMOS_CORRELACAO = 24`, `ARQUIVO_GOLD`, `ARQUIVO_ANALISE_BRASIL`, `ARQUIVO_ANALISE_UF`, `ARQUIVO_RELATORIO_GOLD` (em `DIR_GOLD`) e `DIR_FIGURAS = RAIZ / "docs" / "figuras"`, com comentários; isolar os novos caminhos de dados em `tests/conftest.py` (as figuras também, para os testes não sobrescreverem as reais). Verificar: `pip install -r requirements.txt` sem mudanças e `pytest tests/test_config.py` verde.
 
 ## 3. gold_credito_selic
 
