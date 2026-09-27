@@ -11,7 +11,7 @@
 | Base | URL | Licença | Data de coleta |
 |---|---|---|---|
 | SCR.data | https://dadosabertos.bcb.gov.br/dataset/scr_data | Open Data Commons ODbL | **2026-09-03** (amostra de 2024) |
-| Selic (Ipeadata) | http://www.ipeadata.gov.br/api/odata4/ValoresSerie(SERCODIGO='BM12_TJOVER12') | sem termo único publicado — uso educacional com citação da fonte (seção 2.2 do `architecture.md`) | **2026-09-03** |
+| Selic (Ipeadata) | http://www.ipeadata.gov.br/api/odata4/ValoresSerie(SERCODIGO='BM366_TJOVER366') | sem termo único publicado — uso educacional com citação da fonte (seção 2.2 do `architecture.md`) | **2026-09-03** |
 
 **Nota de proveniência:** o Ipeadata redistribui a série originalmente produzida pelo
 Banco Central. Instituição mantenedora distinta, origem primária a mesma. **Ao citar a
@@ -30,7 +30,7 @@ Aferido em `notebooks/01_exploracao_amostras.ipynb` sobre a amostra de 2024.
 | Separador decimal | `,` (vírgula) | `.` (ponto, no JSON) |
 | Aspas | campos entre aspas duplas | — |
 | Colunas / campos | 24 colunas | `SERCODIGO`, `VALDATA`, `VALVALOR`, `NIVNOME`, `TERCODIGO` |
-| Volume | 3.726.515 linhas em 2024 | 633 registros (jan/1974 a set/2026) |
+| Volume | 3.726.515 linhas em 2024 | 11.044 registros diários (jul/1996 a set/2026) — série da meta do Copom, conferida em 2026-09-27 |
 
 **Unidades e armadilhas numéricas — valem para a tipagem da Silver:**
 
@@ -38,7 +38,7 @@ Aferido em `notebooks/01_exploracao_amostras.ipynb` sobre a amostra de 2024.
 |---|---|---|
 | `carteira_ativa` | **reais** (não milhares), decimal com vírgula | Ler com `decimal=","`. Sem isso o pandas devolve string ou número errado em silêncio. Referência: SP somou R$ 977,0 bi em financiamentos em dez/2024 |
 | `numero_de_operacoes` | inteiro, mas usa **`-1` como máscara** | `-1` **não é contagem negativa**: é a marca do BCB para valor abaixo do limite de divulgação. Ocorre em 27% das linhas (83.511 de 310.432 em dez/2024) |
-| `VALVALOR` | **% ao mês** | Não é % ao ano. O último registro pode ser do **mês corrente incompleto** (em 2026-09-03 vinha 0,1 contra ~1,1 dos vizinhos) e precisa ser descartado |
+| `VALVALOR` | **% ao ano** (Selic meta do Copom, diária) | Até 2026-09-27 o projeto usava a série acumulada no mês (`BM12_TJOVER12`, % ao mês), descartada porque varia com os dias úteis do mês (seção 2.2 do `architecture.md`). A Silver usa a meta do **último dia** de cada mês |
 
 ---
 
@@ -78,7 +78,7 @@ São 24 colunas de origem no total (5 usadas + 19 acima). **Atenção ao vocabul
 `modalidade` e não usa `segmento`.
 
 ### `bronze_selic`
-**Uma linha por:** registro devolvido pela API (a série inteira, desde jan/1974).
+**Uma linha por:** registro devolvido pela API — um por **dia** (a série inteira, desde jul/1996).
 **Chave primária:** `(_source_object, _record_hash)`
 
 Todos os campos devolvidos pela API, **como texto**, sem conversão e sem recorte temporal.
@@ -86,9 +86,9 @@ A Bronze só rejeita uma resposta que não é JSON OData legível (registrado em
 
 | Coluna | Tipo na Bronze | Como vem da fonte | Significado |
 |---|---|---|---|
-| `SERCODIGO` | string | `BM12_TJOVER12` | código da série no Ipeadata |
+| `SERCODIGO` | string | `BM366_TJOVER366` | código da série no Ipeadata (Selic meta do Copom) |
 | `VALDATA` | string | data ISO com fuso (ex.: `2024-01-01T00:00:00-02:00`) | data de referência. A Silver converte para mês |
-| `VALVALOR` | string | número com ponto (ex.: `0.97`) | taxa Selic acumulada no mês, **% ao mês** |
+| `VALVALOR` | string | número com ponto (ex.: `14.25`) | Selic meta fixada pelo Copom naquele dia, **% ao ano** |
 | `NIVNOME` | string | texto (geralmente vazio) | nível geográfico |
 | `TERCODIGO` | string | texto (geralmente vazio) | código territorial |
 
@@ -148,33 +148,61 @@ e só o recorte **jul/2016 a jun/2026**. O que fica fora do escopo é filtrado e
 | Coluna | Tipo | Domínio | Origem | Significado |
 |---|---|---|---|---|
 | `ano_mes` | date | jul/2016 a jun/2026, primeiro dia do mês | `VALDATA` | mês de referência |
-| `selic_pct` | decimal | > 0 | `VALVALOR` | Selic acumulada no mês, **% ao mês**. Usa a leitura mais recente do mês; um mês ainda não fechado nunca entra (com o recorte fixo em jun/2026, os meses posteriores ficam fora do recorte — são filtrados, não vão para a quarentena) |
+| `selic_pct` | decimal | > 0 | `VALVALOR` | **Selic meta do Copom vigente no último dia do mês, % ao ano.** Usa só a série configurada, a leitura mais recente de cada dia e o último dia válido do mês; um mês ainda não fechado nunca entra |
 | `_load_id` | string | UUID | — | execução da Silver que gerou a linha |
 
 ---
 
 ## Camada Gold
 
-### `gold_credito_selic`
+### `gold_credito_selic` — `data/final/gold_credito_selic.parquet`
 **Uma linha por:** mês × estado × modalidade de financiamento.
 **Chave primária:** `(ano_mes, uf, modalidade)`
 
 | Coluna | Tipo | Origem | Significado |
 |---|---|---|---|
-| `ano_mes` | date | Silver | mês |
+| `ano_mes` | date | Silver | mês (primeiro dia) |
 | `uf` | string(2) | Silver | estado |
 | `modalidade` | string | Silver | tipo de financiamento |
-| `qtd_operacoes` | integer | Silver | quantidade de operações |
-| `volume_rs` | decimal | Silver | saldo em R$ |
-| `var_qtd_pct` | decimal | derivada | variação % da quantidade vs. mês anterior |
-| `var_volume_pct` | decimal | derivada | variação % do volume vs. mês anterior |
-| `selic_pct` | decimal | Silver | Selic do mês |
-| `var_selic_pp` | decimal | derivada | variação da Selic em pontos percentuais |
-| `selic_lag_1` … `selic_lag_6` | decimal | derivada | Selic de 1 a 6 meses atrás |
+| `qtd_operacoes` | integer | Silver | quantidade de operações divulgadas — **limite inferior** (5.1) |
+| `linhas_qtd_nao_divulgada` | integer | Silver | linhas do grupo com a quantidade escondida pelo BCB |
+| `volume_rs` | decimal | Silver | saldo em R$ — indicador principal |
+| `tem_mes_anterior` | boolean | derivada | a combinação tem linha no mês imediatamente anterior? Se não, as variações ficam vazias |
+| `var_qtd_pct` | decimal | derivada | variação % da quantidade vs. mês anterior. Vazia sem mês anterior **ou** quando a quantidade anterior é 0 |
+| `var_volume_pct` | decimal | derivada | variação % do volume vs. mês anterior. Vazia sem mês anterior |
+| `selic_pct` | decimal | Silver | Selic meta do mês (% a.a., último dia do mês) — a mesma para todas as UFs e modalidades do mês |
+| `var_selic_pp` | decimal | derivada | **decisão do Copom no mês**: variação da meta vs. mês anterior, em pontos percentuais ao ano (0 se não houve mudança) |
+| `selic_lag_1` … `selic_lag_6` | decimal | derivada | Selic meta de 1 a 6 meses antes, **pelo calendário** |
 
-**Regra de cálculo:** variações e lags calculados separadamente por estado e modalidade,
-ordenados por mês. Os primeiros meses de cada combinação ficam nulos por definição e não
-são preenchidos.
+**Regra de cálculo:** variações calculadas separadamente por estado e modalidade, só entre
+meses consecutivos (`tem_mes_anterior`); buracos não são preenchidos. A Selic, a variação e
+as defasagens vêm da série nacional, pelo calendário. Detalhes na seção 5.3 do `architecture.md`.
+
+### `analise_brasil_modalidade` — `data/final/analise_brasil_modalidade.parquet`
+**Uma linha por:** modalidade × defasagem (8 × 7 = 56 linhas).
+
+| Coluna | Tipo | Significado |
+|---|---|---|
+| `modalidade` | string | tipo de financiamento |
+| `defasagem_meses` | integer | k: compara a variação do crédito no mês t com a variação da Selic no mês t − k (0 a 6) |
+| `n_meses` | integer | meses com as duas variações disponíveis |
+| `spearman` | decimal | correlação de Spearman (−1 a 1). Negativa = quando a Selic sobe, o crédito tende a crescer menos |
+| `pearson` | decimal | correlação de Pearson, para comparação |
+| `p_valor` | decimal | valor-p do Spearman |
+| `p_ajustado` | decimal | valor-p ajustado por Benjamini-Hochberg entre as 56 medidas |
+| `significativo` | boolean | `p_ajustado < 0,05` |
+
+### `analise_uf_modalidade` — `data/final/analise_uf_modalidade.parquet`
+**Uma linha por:** UF × modalidade.
+
+| Coluna | Tipo | Significado |
+|---|---|---|
+| `uf`, `modalidade` | string | combinação |
+| `defasagem_meses` | integer | k* usado: a defasagem de maior associação da modalidade no nível Brasil |
+| `n_meses` | integer | meses válidos (com mês anterior e as duas variações) |
+| `amostra_insuficiente` | boolean | `n_meses` abaixo do mínimo (24): correlação não calculada |
+| `spearman`, `pearson`, `p_valor` | decimal | vazios se a amostra for insuficiente |
+| `p_ajustado`, `significativo` | decimal / boolean | Benjamini-Hochberg entre as combinações calculadas |
 
 ### `gold_ml_dataset`
 *(A definir na Sprint 5 — ver seção 6 de `architecture.md`.)*

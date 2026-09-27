@@ -40,6 +40,21 @@ ARQUIVO_SILVER_SCR = DIR_SILVER / "silver_scr.parquet"
 ARQUIVO_SILVER_SELIC = DIR_SILVER / "silver_selic.parquet"
 ARQUIVO_RELATORIO_SILVER = DIR_SILVER / "_relatorio_silver.json"
 
+# Saídas da Gold e da análise (seções 5.3 e 5.4).
+ARQUIVO_GOLD = DIR_GOLD / "gold_credito_selic.parquet"
+ARQUIVO_ANALISE_BRASIL = DIR_GOLD / "analise_brasil_modalidade.parquet"
+ARQUIVO_ANALISE_UF = DIR_GOLD / "analise_uf_modalidade.parquet"
+ARQUIVO_RELATORIO_GOLD = DIR_GOLD / "_relatorio_gold.json"
+# Gráficos da análise: ficam em docs/ (e vão para o Git) porque são entregáveis.
+DIR_FIGURAS = RAIZ / "docs" / "figuras"
+
+# Regras da análise (seção 5.4).
+# O crédito reage com atraso aos juros: testamos a Selic de 0 a 6 meses antes.
+DEFASAGEM_MAXIMA = 6
+# Uma combinação UF × modalidade precisa de pelo menos 2 anos de meses válidos
+# para a correlação ser calculada; abaixo disso ela é instável demais.
+MESES_MINIMOS_CORRELACAO = 24
+
 # ---------------------------------------------------------------------
 # Fonte 1 — SCR.data (Banco Central)
 # ---------------------------------------------------------------------
@@ -95,9 +110,15 @@ SCR_COLUNAS_USADAS = [
 # ---------------------------------------------------------------------
 # Fonte 2 — Selic (Ipeadata)
 # ---------------------------------------------------------------------
-# BM12_TJOVER12 = Taxa Selic acumulada no mês, em % ao mês.
-# Atenção: é % ao MÊS, não ao ano.
-SELIC_SERIE = "BM12_TJOVER12"
+# BM366_TJOVER366 = Taxa Selic META, fixada pelo Copom, em % AO ANO.
+# Série diária (dias corridos); a Silver usa o valor do ÚLTIMO dia de cada mês.
+#
+# Até 2026-09-27 o projeto usava a BM12_TJOVER12 (Selic acumulada no mês, em
+# % ao mês). Ela foi trocada porque varia com o número de dias úteis do mês:
+# em mar/2026 ela subiu (1,00 -> 1,21 % a.m.) enquanto o Copom CORTOU a meta
+# (15,00 -> 14,75 % a.a.). Detalhes na seção 2.2 do architecture.md.
+SELIC_SERIE = "BM366_TJOVER366"
+SELIC_UNIDADE = "% ao ano"
 SELIC_URL = (
     "http://www.ipeadata.gov.br/api/odata4/"
     f"ValoresSerie(SERCODIGO='{SELIC_SERIE}')"

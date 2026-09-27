@@ -54,7 +54,7 @@ Nenhum outro arquivo pode ter caminho ou URL chumbado. Constantes que importam: 
 - **Recorte:** julho/2016 a junho/2026 (120 meses, fim fixo — seção 2.3). Antes de jul/2016 o limite de registro do SCR era R$ 1.000 em vez de R$ 200 — quebra de série, dados não comparáveis.
 - **Filtro:** só as 8 modalidades `LIKE 'Financiamentos%'`.
 - **Chave de cruzamento:** `ano_mes`. A Selic é nacional, então o mesmo valor se repete para as 27 UFs no mês — isso é esperado, não é erro de join. Órfãos dos dois lados devem ser contados e reportados.
-- **Unidade da Selic:** `BM12_TJOVER12` é **% ao mês**, não ao ano.
+- **Unidade da Selic:** a série é a **Selic meta do Copom** (`BM366_TJOVER366`), diária, em **% ao ano**; a Silver usa o valor do último dia de cada mês. A série antiga `BM12_TJOVER12` (acumulada no mês, % a.m.) foi descartada porque varia com os dias úteis (seção 2.2).
 - **Granularidade:** Silver e Gold são uma linha por `(ano_mes, uf, modalidade)`; a ausência de duplicata na chave é provada por teste.
 
 ### Camadas

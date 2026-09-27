@@ -144,24 +144,45 @@ def test_meses_faltando_nao_sao_preenchidos_e_vao_para_o_relatorio():
 
 
 # ---------------------------------------------------------------------
-# silver_selic
+# silver_selic — Selic META do Copom, diária, % ao ano; corte pelo último dia do mês
 # ---------------------------------------------------------------------
 
-def test_selic_usa_a_leitura_mais_recente_do_mes():
-    with ipeadata_simulado(selic(("2026-05-01", 0.88))):
-        carregar_selic()
-    with ipeadata_simulado(selic(("2026-05-01", 1.05))):
+HOJE = datetime.date(2026, 9, 27)
+
+
+def dias(inicio, fim, valor):
+    """Pares (dia, valor) para todos os dias corridos de `inicio` a `fim` (como a série do Ipeadata)."""
+    return [(d.strftime("%Y-%m-%d"), valor) for d in pd.date_range(inicio, fim, freq="D")]
+
+
+def test_selic_corte_pelo_ultimo_dia_do_mes():
+    # Março/2026: 15,00 até o dia 18 e 14,75 a partir do 19 (corte do Copom).
+    serie = dias("2026-02-01", "2026-02-28", 15.0) + dias("2026-03-01", "2026-03-18", 15.0) \
+        + dias("2026-03-19", "2026-03-31", 14.75)
+    with ipeadata_simulado(selic(*serie)):
         carregar_selic()
 
-    silver = construir_silver_selic(hoje=datetime.date(2026, 9, 27))
+    silver = construir_silver_selic(hoje=HOJE).set_index("ano_mes")["selic_pct"]
 
-    assert list(silver["selic_pct"]) == [1.05]
-    assert silver.loc[0, "ano_mes"] == datetime.date(2026, 5, 1)
+    assert silver[datetime.date(2026, 2, 1)] == 15.0
+    assert silver[datetime.date(2026, 3, 1)] == 14.75
+    assert len(silver) == 2                                   # uma linha por mês, não por dia
+
+
+def test_selic_usa_a_leitura_mais_recente_do_ultimo_dia():
+    with ipeadata_simulado(selic(("2026-05-30", 14.5), ("2026-05-31", 14.25))):
+        carregar_selic()
+    with ipeadata_simulado(selic(("2026-05-30", 14.5), ("2026-05-31", 14.0))):
+        carregar_selic()
+
+    silver = construir_silver_selic(hoje=HOJE)
+
+    assert list(silver["selic_pct"]) == [14.0]
 
 
 def test_selic_recorte_e_mes_nao_fechado():
-    serie = selic(("1974-01-01", 1.46), ("2016-06-01", 1.16), ("2016-07-01", 1.11),
-                  ("2026-06-01", 1.12), ("2026-07-01", 1.22))
+    serie = selic(("1996-07-31", 23.3), ("2016-06-30", 14.25), ("2016-07-31", 14.25),
+                  ("2026-06-30", 14.25), ("2026-07-31", 14.0))
     with ipeadata_simulado(serie):
         carregar_selic()
 
@@ -170,34 +191,53 @@ def test_selic_recorte_e_mes_nao_fechado():
     rel = relatorio()["silver_selic"]
 
     assert [d.isoformat() for d in silver["ano_mes"]] == ["2016-07-01"]
-    assert rel["descartadas_fora_do_recorte"] == 3          # 1974, jun/2016, jul/2026
-    assert rel["descartadas_mes_nao_fechado"] == 1          # jun/2026
+    assert rel["meses_fora_do_recorte"] == 3                  # jul/1996, jun/2016, jul/2026
+    assert rel["meses_nao_fechados"] == 1                     # jun/2026
 
 
-def test_selic_valor_nulo_vai_para_a_quarentena():
-    with ipeadata_simulado(selic(("2024-01-01", 0.97), ("2024-02-01", None))):
+def test_selic_ultimo_dia_invalido_usa_o_dia_valido_anterior():
+    with ipeadata_simulado(selic(("2024-02-28", 11.25), ("2024-02-29", None))):
         carregar_selic()
 
-    silver = construir_silver_selic(hoje=datetime.date(2026, 9, 27))
+    silver = construir_silver_selic(hoje=HOJE)
 
-    assert len(silver) == 1
+    assert list(silver["selic_pct"]) == [11.25]
     assert quarentena("silver_selic")["motivo"].tolist() == ["tipagem_invalida"]
 
 
 def test_selic_leituras_ambiguas_vao_para_a_quarentena():
-    # Duas leituras do mesmo mês, no mesmo instante, com valores diferentes.
+    # Duas leituras do mesmo dia, no mesmo instante, com valores diferentes.
     instante = pd.Timestamp("2026-09-27 10:00:00")
     bronze = pd.DataFrame({
-        "VALDATA": ["2024-03-01T00:00:00-03:00", "2024-03-01T00:00:00-03:00", "2024-04-01T00:00:00-03:00"],
-        "VALVALOR": ["0.83", "0.90", "0.89"],
-        "_ingestion_timestamp": [instante] * 3,
-        "_ingestion_date": [datetime.date(2026, 9, 27)] * 3,
-        "_source_object": ["url"] * 3,
-        "_record_hash": ["a", "b", "c"],
+        "VALDATA": ["2024-03-31T00:00:00-03:00", "2024-03-31T00:00:00-03:00",
+                    "2024-03-30T00:00:00-03:00", "2024-04-30T00:00:00-03:00"],
+        "VALVALOR": ["10.75", "11.0", "10.75", "10.75"],
+        "_ingestion_timestamp": [instante] * 4,
+        "_ingestion_date": [datetime.date(2026, 9, 27)] * 4,
+        "_source_object": [config.SELIC_URL] * 4,
+        "_record_hash": ["a", "b", "c", "d"],
     })
     bronze.to_parquet(config.DIR_BRONZE / "bronze_selic", partition_cols=["_ingestion_date"], index=False)
 
-    silver = construir_silver_selic(hoje=datetime.date(2026, 9, 27))
+    silver = construir_silver_selic(hoje=HOJE).set_index("ano_mes")["selic_pct"]
 
-    assert [d.isoformat() for d in silver["ano_mes"]] == ["2024-04-01"]
     assert quarentena("silver_selic")["motivo"].tolist() == ["duplicata_na_chave", "duplicata_na_chave"]
+    assert silver[datetime.date(2024, 3, 1)] == 10.75          # usou o dia 30, o último dia não ambíguo
+
+
+def test_selic_ignora_linhas_de_outra_serie():
+    with ipeadata_simulado(selic(("2024-01-31", 11.75))):
+        carregar_selic()
+    # Linhas da série antiga (outra URL) esquecidas na Bronze.
+    antiga = pd.DataFrame({
+        "VALDATA": ["2024-01-01T00:00:00-02:00"], "VALVALOR": ["0.97"],
+        "_ingestion_timestamp": [pd.Timestamp("2026-09-27 12:00:00")],
+        "_ingestion_date": [datetime.date(2026, 9, 27)],
+        "_source_object": ["http://.../ValoresSerie(SERCODIGO='BM12_TJOVER12')"], "_record_hash": ["z"],
+    })
+    antiga.to_parquet(config.DIR_BRONZE / "bronze_selic", partition_cols=["_ingestion_date"], index=False)
+
+    silver = construir_silver_selic(hoje=HOJE)
+
+    assert list(silver["selic_pct"]) == [11.75]
+    assert relatorio()["silver_selic"]["descartadas_outra_serie"] == 1

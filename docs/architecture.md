@@ -94,15 +94,31 @@ Em nenhum documento, apresentação ou código do projeto a palavra "segmento" d
 | Campo | Valor |
 |---|---|
 | Instituição | Instituto de Pesquisa Econômica Aplicada — Ipea |
-| O que é | Taxa básica de juros, acumulada no mês |
-| Endpoint | `http://www.ipeadata.gov.br/api/odata4/ValoresSerie(SERCODIGO='BM12_TJOVER12')` |
+| O que é | **Taxa Selic meta, fixada pelo Copom** |
+| Série | `BM366_TJOVER366` — "Taxa de juros - Selic - fixada pelo Copom" |
+| Endpoint | `http://www.ipeadata.gov.br/api/odata4/ValoresSerie(SERCODIGO='BM366_TJOVER366')` |
 | Formato | JSON (OData v4) |
-| Acesso | API REST, sem autenticação |
-| Unidade | **% ao mês** (não % ao ano) |
-| Campos | `SERCODIGO`, `VALDATA`, `VALVALOR` — a API devolve também `NIVNOME` e `TERCODIGO`, ambos vazios nesta série |
-| Período | mensal — 633 registros, de jan/1974 a set/2026; **123 dentro do recorte** (jul/2016 em diante) |
+| Acesso | API REST, sem autenticação. **A API ignora `$filter`, `$top` e `$orderby`** — devolve sempre a série inteira (seção 3) |
+| Unidade | **% ao ano** |
+| Periodicidade | **diária, em dias corridos** (inclui fins de semana) — 11.044 registros, de jul/1996 a set/2026 (conferido em 2026-09-27) |
+| Uso no projeto | **corte mensal:** a meta vigente no **último dia** de cada mês (feito na Silver) |
+| Campos | `SERCODIGO`, `VALDATA`, `VALVALOR` — a API devolve também `NIVNOME` e `TERCODIGO`, vazios |
 | Licença | Sem termo único publicado no Ipeadata — ver ressalva abaixo. Uso educacional permitido e **citação da fonte obrigatória** nas três declarações do Ipea |
-| **Data de coleta** | **2026-09-03** |
+| **Data de coleta** | **2026-09-03** (série antiga) e **2026-09-27** (série atual) |
+
+**Por que não a série acumulada no mês (`BM12_TJOVER12`)** *(decisão do grupo, 2026-09-27 — change `troca-serie-selic`)*. Até a Sprint 4 o projeto usou a `BM12_TJOVER12`, a Selic **acumulada no mês, em % ao mês**. Ela foi descartada porque **varia com o número de dias úteis do mês**, não só com a decisão do Copom: com a taxa parada, um mês de 22 dias úteis acumula mais juros que um de 20. Evidência medida nos 120 meses do recorte:
+
+- a variação mensal da série tem **correlação de Spearman de 0,79 com a variação do número de dias úteis**;
+- exemplo real — a série antiga **subiu** quando o Copom **cortou**:
+
+| Mês | Série antiga (acumulada, % a.m.) | Dias úteis | Meta do Copom no fim do mês (% a.a.) |
+|---|---|---|---|
+| fev/2026 | 1,00 | 20 | 15,00 |
+| mar/2026 | **1,21 ↑** | 22 | **14,75 ↓** |
+
+Com a série antiga, a variação da Selic media sobretudo o calendário, e a análise comparava o crédito com os dias úteis. A meta do Copom é o que a pergunta de pesquisa chama de "ciclos de alta e baixa": ela só muda nas reuniões, então cada variação mensal diferente de zero é uma decisão identificável (ex.: −0,25 p.p. em mar/2026). A Selic over efetiva diária (`GM366_TJOVER366`) também existe, mas oscila com o mercado; a meta é o sinal de política.
+
+**Só meses fechados.** A meta vigente no último dia de um mês só é conhecida depois que o mês termina; o mês em curso nunca entra na Silver.
 
 **Licença — consultado em 2026-09-03.** Nem o `ipeadata.gov.br` nem a página da sua API publicam termos de uso. O que existe são três declarações diferentes, em propriedades distintas do Ipea:
 
@@ -113,8 +129,6 @@ Em nenhum documento, apresentação ou código do projeto a palavra "segmento" d
 | [ipea.gov.br/extrator/termos_condicoes.html](https://www.ipea.gov.br/extrator/termos_condicoes.html) (outra ferramenta) | Apache 2.0 para o software; obrigatória a citação da fonte do dado. |
 
 O denominador comum das três é o que vale para este projeto: **uso educacional é permitido e a citação da fonte é obrigatória**. Sendo um trabalho acadêmico, sem fim lucrativo e sem redistribuição do dado bruto, o uso está coberto mesmo pela leitura mais restritiva. A divergência entre as três está registrada na seção 11 (Limitações Conhecidas).
-
-**Atenção ao último mês da série.** Na coleta de 2026-09-03 o último registro era `2026-09-01` com valor **0,1**, contra ~1,1 nos meses vizinhos: é o **mês corrente ainda incompleto**. Incluí-lo produziria uma queda falsa de mais de 90% na variação da Selic. O mês em curso precisa ser descartado na Silver.
 
 **Nota de proveniência:** o Ipeadata redistribui a série originalmente produzida pelo Banco Central. Instituição mantenedora distinta, origem primária a mesma. Isso deve constar explicitamente no dicionário de dados.
 
@@ -253,24 +267,28 @@ assert df.duplicated(["ano_mes", "uf", "modalidade"]).sum() == 0
 | Coluna | Tipo | Domínio | Origem | Significado |
 |---|---|---|---|---|
 | `ano_mes` | date | jul/2016 a jun/2026, **primeiro dia do mês** | `VALDATA` | mês de referência (leitura mais recente de cada mês; nunca um mês não fechado) |
-| `selic_pct` | decimal | > 0 | `VALVALOR` | Selic acumulada no mês, % a.m. |
+| `selic_pct` | decimal | > 0 | `VALVALOR` | **Selic meta do Copom vigente no último dia do mês, % ao ano** |
 
 ### 5.3. Dicionário — `gold_credito_selic`
 
 | Coluna | Tipo | Origem | Significado |
 |---|---|---|---|
-| `ano_mes` | date | Silver | mês |
+| `ano_mes` | date | Silver | mês (primeiro dia) |
 | `uf` | string(2) | Silver | estado |
 | `modalidade` | string | Silver | tipo de financiamento |
-| `qtd_operacoes` | integer | Silver | quantidade de operações |
-| `volume_rs` | decimal | Silver | saldo em R$ |
-| `var_qtd_pct` | decimal | derivada | variação % da quantidade vs. mês anterior |
-| `var_volume_pct` | decimal | derivada | variação % do volume vs. mês anterior |
-| `selic_pct` | decimal | Silver | Selic do mês |
-| `var_selic_pp` | decimal | derivada | variação da Selic em pontos percentuais |
-| `selic_lag_1` … `selic_lag_6` | decimal | derivada | Selic de 1 a 6 meses atrás |
+| `qtd_operacoes` | integer | Silver | quantidade de operações divulgadas — **limite inferior** (5.1) |
+| `linhas_qtd_nao_divulgada` | integer | Silver | linhas do grupo com a quantidade escondida pelo BCB |
+| `volume_rs` | decimal | Silver | saldo em R$ — indicador principal |
+| `tem_mes_anterior` | boolean | derivada | a combinação tem linha no mês imediatamente anterior? Se não, as variações ficam vazias |
+| `var_qtd_pct` | decimal | derivada | variação % da quantidade vs. mês anterior. Vazia sem mês anterior **ou** quando a quantidade anterior é 0 |
+| `var_volume_pct` | decimal | derivada | variação % do volume vs. mês anterior. Vazia sem mês anterior |
+| `selic_pct` | decimal | Silver | Selic meta do mês (% a.a., último dia do mês) — a mesma para todas as UFs e modalidades do mês |
+| `var_selic_pp` | decimal | derivada | **decisão do Copom no mês**: variação da meta vs. mês anterior, em pontos percentuais ao ano (0 se não houve mudança) |
+| `selic_lag_1` … `selic_lag_6` | decimal | derivada | Selic meta de 1 a 6 meses antes, **pelo calendário** |
 
 **Regra de cálculo:** variações e lags são calculados separadamente por estado e modalidade, ordenados por mês — nunca misturando combinações diferentes. Os primeiros meses de cada combinação ficam nulos por definição; isso não é preenchido artificialmente.
+
+**Variação só entre meses consecutivos** *(decisão do grupo, 2026-09-27)*. 42 combinações UF × modalidade têm buracos no meio da série (meses sem nenhuma operação). A variação só é calculada quando a combinação tem linha no mês **imediatamente anterior** pelo calendário (`tem_mes_anterior`); caso contrário fica vazia — nunca se compara com um mês mais antigo nem se preenche o buraco. `var_qtd_pct` fica vazia também quando a quantidade anterior é 0 (7.945 grupos em que toda a quantidade estava escondida). A Selic é nacional e não tem buracos: `var_selic_pp` e `selic_lag_k` são calculados na série da Selic pelo calendário, então uma combinação com buraco ainda recebe a Selic certa de k meses antes. Os meses de jul a dez/2016 ficam sem parte dos lags, porque a `silver_selic` começa em jul/2016.
 
 ### 5.4. Regras de análise estatística
 
@@ -278,6 +296,15 @@ assert df.duplicated(["ano_mes", "uf", "modalidade"]).sum() == 0
 - Testar a Selic defasada em 1 a 6 meses — o crédito reage com atraso a mudanças de juros.
 - Rodar a análise separadamente por modalidade. Financiamento imobiliário e rural têm juros subsidiados e indexadores próprios, e reagem menos à Selic por construção.
 - Reportar como **associação**, nunca como causa.
+
+**Como a análise é feita** *(Sprint 4, decisões do grupo de 2026-09-27)*:
+
+- **Dois níveis.** (1) **Brasil por modalidade**: soma o `volume_rs` das 27 UFs em cada mês, calcula a variação nacional e mede a associação com a variação da Selic no mesmo mês e com 1 a 6 meses de defasagem (8 modalidades × 7 defasagens = 56 medidas). (2) **UF × modalidade**: a mesma medida para cada combinação, num mapa de calor que mostra onde o crédito reage mais.
+- **Medida: correlação de Spearman** (compara a ordem dos valores), com a de Pearson ao lado. Spearman é menos sensível a meses extremos, comuns nas combinações pequenas.
+- **Defasagem no mapa de calor:** cada combinação é medida só na defasagem de maior associação **da sua modalidade no nível Brasil**. Escolher a melhor defasagem combinação por combinação seria escolher o resultado a dedo (1.512 testes).
+- **Amostra mínima:** combinações com menos de 24 meses válidos não têm correlação calculada ("amostra insuficiente").
+- **Muitos testes:** os valores-p são ajustados por Benjamini-Hochberg, separadamente em cada nível; só é "significativo" o que tem valor-p **ajustado** < 0,05.
+- Código em `src/analise/correlacao.py`; resultados em `data/final/`; figuras em `docs/figuras/`; explicação em `notebooks/02_analise_estatistica.ipynb`.
 
 ---
 
@@ -476,6 +503,8 @@ projeto-selic-credito/
 │   │   └── gold_credito_selic.py
 │   ├── validation/
 │   │   └── quality_checks.py
+│   ├── analise/                  # Sprint 4: correlações e gráficos
+│   │   └── correlacao.py
 │   ├── ml/                       # Sprint 5
 │   └── utils/
 │
@@ -490,7 +519,8 @@ projeto-selic-credito/
 │
 └── docs/
     ├── architecture.md           # este arquivo
-    └── data_dictionary.md        # seção 5 consolidada
+    ├── data_dictionary.md        # seção 5 consolidada
+    └── figuras/                  # gráficos da análise (versionados: são entregáveis)
 ```
 
 **Estratégia Git:** `main` estável, branches de feature por membro, merge via Pull Request. Commits atômicos no formato `tipo: descrição breve` (`feat:`, `fix:`, `docs:`, `test:`).
@@ -526,6 +556,7 @@ projeto-selic-credito/
 
 9. **A quantidade de operações é subestimada.** O BCB esconde a quantidade (`-1`) de 28% das linhas de financiamento; a Silver soma só as divulgadas (`qtd_operacoes` é limite inferior) e registra quantas linhas estavam escondidas. Se a proporção escondida muda de um mês para o outro, a variação da quantidade mistura variação real com variação da máscara — por isso o **volume** é o indicador principal (seção 5.1).
 10. **Nem toda combinação UF × modalidade existe em todos os meses.** No recorte, 42 das 216 combinações têm meses sem nenhuma linha — meses em que não havia nenhuma operação daquele tipo naquele estado. São combinações minúsculas (0,005% do volume). A Silver não preenche esses meses; a Gold só pode calcular variação entre meses consecutivos.
+11. **Sazonalidade não é tratada.** O crédito tem padrão sazonal (por exemplo, o rural acompanha a safra) e a Selic não; isso pode diluir a associação medida. Um ajuste sazonal fica como evolução possível.
 
 **O que seria preciso para afirmar mais:** série de concessões com abertura por UF (não disponível publicamente), variáveis de controle regionais mensais como renda e emprego, e informação sobre a política de crédito das instituições.
 
@@ -538,6 +569,25 @@ projeto-selic-credito/
 - **LGPD:** os dados usados são agregados por UF e modalidade, sem identificação de pessoa física. Nenhum dado pessoal entra em nenhuma camada.
 - **Uso de IA generativa:** declarado no README — para quê foi usada e em que partes. Todo integrante precisa ser capaz de explicar qualquer trecho entregue. Código que ninguém do grupo consegue justificar conta como não entregue.
 - **Fontes:** URL, data de coleta e licença de cada base citadas na seção 2 e no dicionário de dados.
+
+---
+
+## 13. Registro de decisões
+
+Decisões tomadas pelo grupo ao longo das sprints. O detalhe fica na seção indicada; esta tabela é o índice — útil para a defesa.
+
+| # | Data | Decisão | Por quê | Onde |
+|---|---|---|---|---|
+| 1 | 2026-09-26 | A Bronze guarda **todas as colunas e campos da fonte, como texto**, sem conversão, recorte ou validação de negócio | Reprocessar sempre a partir da Bronze, sem voltar à fonte; se a Silver precisar de outra coluna, ela já está lá | 4.1 |
+| 2 | 2026-09-26 | A **quarentena acontece na Silver**; a Bronze só rejeita o que não consegue ler | Uma regra com bug na ingestão apagaria o dado da fonte de reprocessamento | 3.3 |
+| 3 | 2026-09-27 | **Recorte fixo de jul/2016 a jun/2026** (120 meses, 10 anos), nas duas bases | Início: quebra de série do SCR em jun/2016. Fim fixo: o resultado não muda a cada publicação do BCB e só entram meses fechados | 2.3 |
+| 4 | 2026-09-27 | O SCR publica com **~60 dias** de defasagem (não ~30) | Medido: em 2026-09-26 o último mês publicado era jul/2026 | 2.1, 6.2 |
+| 5 | 2026-09-27 | **Versões republicadas pelo BCB são preservadas**; a Silver usa a mais recente | A Bronze é imutável; o BCB republicou ago/2024 depois da coleta | 3.2 |
+| 6 | 2026-09-27 | `qtd_operacoes` = soma só das quantidades divulgadas — **limite inferior**; o **volume** é o indicador principal | O BCB esconde a quantidade (`-1`) em 28% das linhas e em 99,9% dos grupos | 5.1, 11 |
+| 7 | 2026-09-27 | **Variação só entre meses consecutivos** (`tem_mes_anterior`); buracos não são preenchidos | 42 combinações UF × modalidade têm meses sem operação | 5.3 |
+| 8 | 2026-09-27 | **Análise em dois níveis**: Brasil por modalidade e UF × modalidade (mapa de calor), Spearman, ajuste de Benjamini-Hochberg | Responder "por estado e por modalidade" sem escolher resultado a dedo | 5.4 |
+| 9 | 2026-09-27 | **Selic meta do Copom** (`BM366_TJOVER366`, % a.a., corte no último dia do mês) no lugar da acumulada no mês (`BM12_TJOVER12`, % a.m.) | A série antiga variava com os dias úteis (correlação 0,79) e chegou a subir quando o Copom cortou | 2.2 |
+| 10 | 2026-09-27 | **Publicação da Gold** num banco NeonDB com front Next.js na Vercel — **adiada para a sprint final**; a etapa de envio será opcional (só roda com a string de conexão configurada) | Mostrar os dados na entrega; o tech lead tem experiência com a stack. Exige revisar a decisão "sem cloud" (seção 0) quando for implementada | a registrar na sprint final |
 
 ---
 
