@@ -22,12 +22,33 @@ DIR_SILVER = DIR_DADOS / "processed"  # camada Silver: dado limpo
 DIR_GOLD = DIR_DADOS / "final"        # camada Gold: dado pronto para a pergunta
 DIR_QUARENTENA = DIR_DADOS / "raw" / "_quarentena"
 
+# Amostras baixadas à mão na Sprint 1, só para diagnóstico (scripts/baixar_amostras.py).
+DIR_AMOSTRAS = DIR_BRONZE / "_amostras"
+# ZIPs anuais do SCR baixados pelo loader da Bronze. Ficam em disco para não
+# baixar ~170 MB de novo a cada execução.
+DIR_DOWNLOADS_SCR = DIR_BRONZE / "_downloads"
+
 # ---------------------------------------------------------------------
 # Fonte 1 — SCR.data (Banco Central)
 # ---------------------------------------------------------------------
 SCR_URL_TEMPLATE = "https://www.bcb.gov.br/pda/desig/scrdata_{ano}.zip"
 SCR_PORTAL = "https://dadosabertos.bcb.gov.br/dataset/scr_data"
 SCR_SEPARADOR = ";"
+
+# Nome do arquivo ZIP em disco: o mesmo que o BCB publica na URL.
+# O loader e o script de amostras usam este nome, então um ZIP baixado por
+# um pode ser reaproveitado pelo outro (basta copiar entre as pastas).
+SCR_NOME_ZIP = "scrdata_{ano}.zip"
+
+# Quantas linhas do CSV são lidas por vez. Um CSV mensal tem ~300 mil linhas;
+# ler em blocos evita carregar o arquivo inteiro na memória.
+SCR_TAMANHO_BLOCO = 200_000
+
+# Tempo limite do download do ZIP, em segundos: (conectar, ler).
+# O "ler" é o tempo máximo SEM receber nenhum byte, não o tempo total do
+# download — por isso 300 s é folgado mesmo para um ZIP de 170 MB.
+# Sem timeout, uma conexão que para de responder trava o pipeline para sempre.
+TIMEOUT_DOWNLOAD_SCR = (10, 300)
 
 # Confirmado na Sprint 1, abrindo a amostra de 2024: os CSVs do SCR vêm
 # em UTF-8 com BOM (os três primeiros bytes do arquivo são EF BB BF).
@@ -44,7 +65,10 @@ SCR_SEPARADOR = ";"
 # Por isso "latin-1" fica por último, como fallback de último recurso.
 SCR_ENCODINGS_CANDIDATOS = ["utf-8-sig", "utf-8", "latin-1"]
 
-# Só estas cinco colunas viram Silver. As outras ficam na Bronze.
+# Só estas cinco colunas viram Silver. A Bronze guarda TODAS as colunas do
+# CSV, como texto (seção 4.1 do architecture.md); o corte é feito na Silver.
+# O loader usa esta lista só para conferir se o CSV serve ao projeto: CSV sem
+# alguma delas é rejeitado inteiro, com log.
 SCR_COLUNAS_USADAS = [
     "data_base",
     "uf",

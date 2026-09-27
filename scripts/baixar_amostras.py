@@ -31,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src import config  # noqa: E402
 
 ANO_AMOSTRA = 2024
-PASTA_AMOSTRAS = config.RAIZ / "data" / "raw" / "_amostras"
+PASTA_AMOSTRAS = config.DIR_AMOSTRAS
 
 
 def separador(titulo):
@@ -52,7 +52,7 @@ def obter_zip_do_scr(forcar_download=False):
     resultado do diagnóstico, não como erro do script.
     """
     PASTA_AMOSTRAS.mkdir(parents=True, exist_ok=True)
-    caminho_zip = PASTA_AMOSTRAS / f"scrdata_{ANO_AMOSTRA}.zip"
+    caminho_zip = PASTA_AMOSTRAS / config.SCR_NOME_ZIP.format(ano=ANO_AMOSTRA)
 
     if caminho_zip.exists() and not forcar_download:
         tamanho_mb = caminho_zip.stat().st_size / 1024 / 1024

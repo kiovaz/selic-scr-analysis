@@ -47,3 +47,10 @@ def test_colunas_usadas_do_scr():
     assert len(config.SCR_COLUNAS_USADAS) == 5
     assert "carteira_ativa" in config.SCR_COLUNAS_USADAS
     assert "numero_de_operacoes" in config.SCR_COLUNAS_USADAS
+
+
+def test_nome_do_zip_igual_ao_publicado_pelo_bcb():
+    """O ZIP em disco tem o mesmo nome do arquivo na URL do BCB."""
+    nome = config.SCR_NOME_ZIP.format(ano=2024)
+    url = config.SCR_URL_TEMPLATE.format(ano=2024)
+    assert url.endswith("/" + nome)
