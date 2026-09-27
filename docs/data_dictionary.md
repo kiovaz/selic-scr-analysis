@@ -204,8 +204,32 @@ as defasagens vêm da série nacional, pelo calendário. Detalhes na seção 5.3
 | `spearman`, `pearson`, `p_valor` | decimal | vazios se a amostra for insuficiente |
 | `p_ajustado`, `significativo` | decimal / boolean | Benjamini-Hochberg entre as combinações calculadas |
 
-### `gold_ml_dataset`
-*(A definir na Sprint 5 — ver seção 6 de `architecture.md`.)*
+### `gold_ml_dataset` — `data/final/gold_ml_dataset.parquet`
+**Uma linha por:** combinação UF × modalidade (coorte de 174) × mês de **origem** (o mês em que a previsão seria feita).
+**Chave primária:** `(uf, modalidade, origem)`
+
+| Coluna | Tipo | Significado |
+|---|---|---|
+| `uf`, `modalidade` | string | combinação |
+| `origem` | date | mês de origem t (jul/2017 em diante — precisa de 12 meses de histórico) |
+| `var_1m`, `var_3m`, `var_6m`, `var_12m` | decimal | crescimento % do saldo da combinação nos últimos 1, 3, 6 e 12 meses (até t) |
+| `aceleracao_3m` | decimal | `var_3m` em t menos `var_3m` em t−3 (p.p.): ganhou (>0) ou perdeu (<0) força recentemente |
+| `rel_3m`, `rel_12m` | decimal | crescimento da combinação menos o da modalidade no Brasil (p.p.) |
+| `participacao` | decimal | saldo da combinação ÷ saldo nacional da modalidade, em t |
+| `var_participacao_12m` | decimal | variação da participação em 12 meses |
+| `selic_pct` | decimal | Selic meta em t (% a.a.) — **variável da Selic** |
+| `selic_var_3m`, `selic_var_6m` | decimal | variação da meta nos 3 e 6 meses anteriores (p.p.) — **variáveis da Selic** |
+| `volume_origem` | decimal | saldo da combinação em t — só para pesar a AUC; **não** é feature |
+| `ganha_forca` | 0/1 | **rótulo**: 1 se o saldo cresce mais de t+2 a t+5 do que cresceu de t−3 a t. Vazio na produção |
+| `conjunto` | string | `desenvolvimento` (até ago/2024), `embargo` (set/2024–jan/2025, fora do modelo avaliado), `teste` (fev/2025–jan/2026), `producao` (jun/2026) |
+
+### Saídas do ML (`data/final/`)
+
+| Arquivo | Conteúdo |
+|---|---|
+| `ml_resultados.json` | janela móvel (AUC por ano de cada candidato, com e sem Selic, e dos baselines), modelo escolhido, métricas do teste final, importância das variáveis, efeito da Selic, alertas |
+| `ml_previsoes_teste.parquet` | por linha do teste: `uf, modalidade, origem, ganha_forca, prob_ganha_forca, prob_sem_selic` |
+| `ml_previsao_producao.parquet` | por combinação: `uf, modalidade, origem (jun/2026), prob_ganha_forca` para set–nov/2026, ordenado |
 
 ---
 

@@ -238,7 +238,7 @@ Regra geral: reprocessamento sempre parte da Bronze. Se Silver ou Gold quebram, 
 | Silver | `silver_scr` | mês × estado × modalidade | `(ano_mes, uf, modalidade)` |
 | Silver | `silver_selic` | mês | `(ano_mes)` |
 | Gold | `gold_credito_selic` | mês × estado × modalidade | `(ano_mes, uf, modalidade)` |
-| Gold | `gold_ml_dataset` | *(a definir na Sprint 5 — ver seção 6)* | *(a definir)* |
+| Gold | `gold_ml_dataset` | combinação UF × modalidade × mês de origem | `(uf, modalidade, origem)` |
 
 **Prova obrigatória de ausência de duplicata na chave:**
 ```python
@@ -310,28 +310,34 @@ assert df.duplicated(["ano_mes", "uf", "modalidade"]).sum() == 0
 
 ## 6. Base ML-Ready e Anti-Vazamento
 
-> **Status: escopo confirmado, definição adiada para a Sprint 5.**
->
-> O grupo vai fazer a parte de ML, mas ainda não decidiu o que exatamente vai prever. A definição acontece na Sprint 5, **antes** de qualquer linha de código de treino, e este documento é atualizado com as respostas antes de a Sprint começar.
+> **Status: definido na Sprint 5 (2026-09-27)**, antes de qualquer código de treino, com números medidos na Gold real. Change `modelo-ml`.
 
-### 6.1. Decisões pendentes
+### 6.1. Definição do problema
 
-| Elemento | Pergunta a responder na Sprint 5 |
+**A pergunta:** *"o crédito desta combinação UF × modalidade vai **ganhar força** no próximo trimestre que o decisor ainda pode usar?"* — ganhar força = o saldo crescer **mais** no trimestre futuro do que cresceu nos últimos 3 meses. Continuar crescendo, só que mais devagar, é **perder força**.
+
+| Elemento | Definição |
 |---|---|
-| **Tipo de problema** | Classificação (a direção da variação) ou regressão (o tamanho da variação)? |
-| **Label** | O que exatamente é o positivo, e em que momento se sabe que aconteceu |
-| **Regra de rotulagem** | A condição formal do evento, em código |
-| **Coorte** | Quais combinações UF × modalidade são elegíveis, e o que foi excluído e por quê |
-| **Janela de observação** | De onde vêm as features (sempre antes do t0) |
-| **Janela de predição** | Onde o label é observado (sempre depois do t0) |
-| **Baseline** | O modelo trivial contra o qual o nosso será comparado |
-| **Métrica** | Qual, por que ela cabe no desbalanceamento, e **qual é a classe positiva** |
+| **Tipo de problema** | Classificação binária |
+| **Label** | `ganha_forca` = 1 (**classe positiva = ganha força = expandir**); 0 = perde força (cuidado ao expandir). Conhecido quando o BCB publica o mês t+5 (~t+7) |
+| **Regra de rotulagem** | `ganha_forca = (volume[t+5] / volume[t+2] − 1) > (volume[t] / volume[t−3] − 1)` por combinação, com `volume` = `volume_rs` da Gold |
+| **Coorte** | As **174** combinações UF × modalidade com os 120 meses do recorte (99,995% do volume). As 42 com meses sem operação ficam de fora (as features exigiriam meses inexistentes). Filtro aplicado antes do split |
+| **Janela de observação** | Até 12 meses antes da origem t, **inclusive t** (variações de 1, 3, 6 e 12 meses, aceleração, posição relativa ao Brasil, participação, Selic meta e decisões do Copom nos 3 e 6 meses anteriores, UF, modalidade) |
+| **Janela de predição** | De **t+2 a t+5**. A folga de 2 meses existe porque o SCR é publicado ~60 dias depois: quando o dado de t chega ao decisor, t+1 e t+2 já passaram |
+| **Baseline** | Classe majoritária e **"volta ao normal"** — prevê "ganha força" quando o crédito perdeu força nos últimos 3 meses. Acerta **64,7%** (medido na Gold): é a régua a vencer |
+| **Métrica** | **AUC** (principal — ordena quem vai ganhar força, sem depender do limiar, que é da Sprint 6); **precisão nas 20 melhores apostas** de cada mês (como o decisor usa); **AUC pesada pelo volume**; precisão/recall da classe positiva. Classes equilibradas (~50%), então a acurácia também é legível |
+
+**Números que embasaram a definição** (Gold real, coorte, 2026-09-27): ~19 mil exemplos; 50,1% "ganha força"; a Selic **sozinha** tem AUC ≈ 0,51 (0,49–0,54 por modalidade) — quase não antecipa o próximo trimestre. Por isso o modelo é avaliado **com e sem** as variáveis da Selic.
+
+**Versão descartada da pergunta** (mesmo dia): "a combinação vai crescer **mais que o Brasil** na mesma modalidade, de t a t+3?". Trocada porque, ao comparar cada estado com a média do país, o efeito da Selic — igual para todos — **se cancela**, e porque t→t+3 ignora o atraso de publicação.
+
+**Avaliação:** janela móvel por ano (blocos de origens 2020–2023, cada um previsto por um modelo treinado até 6 meses antes) para escolher o modelo e medir estabilidade; teste final único nas origens fev/2025–jan/2026, com treino até ago/2024 e **embargo de 5 meses** (set/2024–jan/2025), porque o rótulo olha até t+5.
 
 ### 6.2. Decisões já fechadas (valem para qualquer opção)
 
 **Ponto de corte (t0):** o último mês **publicado** do SCR.data, não o mês corrente.
 
-Com o recorte fixo da seção 2.3, **t0 = junho/2026**, o último mês do recorte (já publicado na data da análise). Isso é deliberado. O SCR.data sai com cerca de 60 dias de atraso, então no momento real da decisão o dado do mês corrente ainda não existe. Usar o mês corrente como t0 seria dar ao modelo uma informação que na prática ele não teria — vazamento operacional.
+Com o recorte fixo da seção 2.3, **t0 = junho/2026**, o último mês do recorte (já publicado na data da análise). A previsão de produção sai da origem t0 e cobre **set a nov/2026** (t0+2 a t0+5). Isso é deliberado. O SCR.data sai com cerca de 60 dias de atraso, então no momento real da decisão o dado do mês corrente ainda não existe. Usar o mês corrente como t0 seria dar ao modelo uma informação que na prática ele não teria — vazamento operacional.
 
 **Split: temporal.** Treino nos meses mais antigos, teste nos mais recentes.
 
@@ -339,13 +345,22 @@ Justificativa: o objetivo é prever os **mesmos estados e modalidades** em meses
 
 ### 6.3. Checklist Anti-Vazamento
 
-A responder item a item na entrega final, independentemente do modelo escolhido:
+Respondido na Sprint 5 (2026-09-27), com a evidência de cada item. Detalhes em `notebooks/03_modelo.ipynb`.
 
-- [ ] Toda feature existia antes do t0?
-- [ ] As agregações (lags, médias móveis) foram calculadas apenas com dados anteriores ao t0 de cada observação?
-- [ ] O split respeita a ordem temporal? Nenhum mês de teste aparece antes de um mês de treino?
-- [ ] Scalers e encoders foram ajustados (`fit`) **somente** no treino, com apenas `transform` em teste?
-- [ ] A coluna que dá origem ao label foi removida das features?
+- [x] **Toda feature existia antes do t0?** Sim — as features de uma origem t usam só meses ≤ t; a produção usa só dados até jun/2026. *Evidência:* `src/ml/dataset.py` (só `shift` para trás nas features); teste `test_mexer_no_futuro_nao_muda_as_features`.
+- [x] **As agregações (lags, médias móveis) foram calculadas apenas com dados anteriores ao t0 de cada observação?** Sim — variações, aceleração, participação e Selic partem da própria origem para trás. *Evidência:* o mesmo teste (alterar volume e Selic depois da origem não muda nenhuma feature).
+- [x] **O split respeita a ordem temporal? Nenhum mês de teste aparece antes de um mês de treino?** Sim, com **embargo de 5 meses** (set/2024–jan/2025) porque o rótulo olha até t+5; na janela móvel, cada ano é treinado só até julho do ano anterior. *Evidência:* `marcar_conjunto` e `janela_movel`; teste `test_conjuntos_sem_sobreposicao_e_chave_unica`.
+- [x] **Scalers e encoders foram ajustados (`fit`) somente no treino, com apenas `transform` em teste?** Sim — pré-processamento e modelo num único `Pipeline`, ajustado só nas linhas de treino de cada avaliação. *Evidência:* `montar_pipeline` em `src/ml/treino.py`; teste `test_padronizacao_ajustada_so_no_treino`.
+- [x] **A coluna que dá origem ao label foi removida das features?** Sim — o volume de t+2 e t+5 só aparece no rótulo; a quantidade de operações nem entra (limite inferior, 5.1). *Evidência:* `FEATURES_NUMERICAS` em `src/ml/dataset.py`.
+
+Verificações extras: a escolha do modelo não muda se os rótulos do teste forem invertidos (`test_rotulos_do_teste_nao_mudam_a_escolha`); métrica acima de 0,95 gera alerta (`test_base_perfeita_dispara_alerta`) — nenhum alerta na execução real.
+
+### 6.5. Resultado do modelo (Sprint 5, 2026-09-27)
+
+- **Escolhido:** gradient boosting (`HistGradientBoostingClassifier`), AUC média 0,752 na janela móvel 2020–2023 (regressão logística: 0,722).
+- **Teste final (fev/2025–jan/2026, usado uma vez):** AUC **0,778** contra **0,688** da "volta ao normal" — **supera o baseline**. Nas 20 melhores apostas de cada mês, acerta **82,5%** (volta ao normal: 75,0%). AUC pesada pelo volume: 0,792.
+- **A Selic não ajuda a prever:** o mesmo modelo **sem** as variáveis da Selic teve AUC 0,796 no teste; a diferença "com − sem" oscila em torno de zero nos anos (+0,007, +0,035, −0,067, −0,034). O que prevê é a dinâmica do próprio crédito — sobretudo o crescimento dos últimos 3 meses (volta ao normal refinada). Coerente com a Sprint 4: a Selic está **associada** ao crédito, mas não **antecipa** o trimestre seguinte.
+- **Previsão de produção:** probabilidade de cada uma das 174 combinações ganhar força em set–nov/2026 (`data/final/ml_previsao_producao.parquet`). As probabilidades mais extremas estão em combinações pequenas; o limiar de decisão é da Sprint 6 (seção 10).
 
 ### 6.4. Armadilhas específicas deste projeto
 
@@ -587,7 +602,8 @@ Decisões tomadas pelo grupo ao longo das sprints. O detalhe fica na seção ind
 | 7 | 2026-09-27 | **Variação só entre meses consecutivos** (`tem_mes_anterior`); buracos não são preenchidos | 42 combinações UF × modalidade têm meses sem operação | 5.3 |
 | 8 | 2026-09-27 | **Análise em dois níveis**: Brasil por modalidade e UF × modalidade (mapa de calor), Spearman, ajuste de Benjamini-Hochberg | Responder "por estado e por modalidade" sem escolher resultado a dedo | 5.4 |
 | 9 | 2026-09-27 | **Selic meta do Copom** (`BM366_TJOVER366`, % a.a., corte no último dia do mês) no lugar da acumulada no mês (`BM12_TJOVER12`, % a.m.) | A série antiga variava com os dias úteis (correlação 0,79) e chegou a subir quando o Copom cortou | 2.2 |
-| 10 | 2026-09-27 | **Publicação da Gold** num banco NeonDB com front Next.js na Vercel — **adiada para a sprint final**; a etapa de envio será opcional (só roda com a string de conexão configurada) | Mostrar os dados na entrega; o tech lead tem experiência com a stack. Exige revisar a decisão "sem cloud" (seção 0) quando for implementada | a registrar na sprint final |
+| 11 | 2026-09-27 | **ML: prever se o crédito "ganha força"** (cresce mais no trimestre t+2→t+5 do que nos últimos 3 meses), nas 174 combinações completas, avaliado com e sem a Selic | Liga o modelo ao ciclo do crédito onde a Selic atua; a folga de 2 meses respeita o atraso de publicação; a versão "cresce mais que o Brasil" cancelava o efeito da Selic | 6.1 |
+| 12 | 2026-09-27 | **Publicação da Gold** num banco NeonDB com front Next.js na Vercel — **adiada para a sprint final**; a etapa de envio será opcional (só roda com a string de conexão configurada) | Mostrar os dados na entrega; o tech lead tem experiência com a stack. Exige revisar a decisão "sem cloud" (seção 0) quando for implementada | a registrar na sprint final |
 
 ---
 
