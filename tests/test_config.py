@@ -54,3 +54,9 @@ def test_nome_do_zip_igual_ao_publicado_pelo_bcb():
     nome = config.SCR_NOME_ZIP.format(ano=2024)
     url = config.SCR_URL_TEMPLATE.format(ano=2024)
     assert url.endswith("/" + nome)
+
+
+def test_recorte_tem_exatamente_10_anos():
+    """jul/2016 a jun/2026: 120 meses (seção 2.3 do architecture.md)."""
+    meses = (config.ANO_FIM - config.ANO_INICIO) * 12 + (config.MES_FIM - config.MES_INICIO) + 1
+    assert meses == 120

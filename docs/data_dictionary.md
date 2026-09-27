@@ -128,7 +128,7 @@ categoria (texto `AAAA-MM-DD`).
 
 | Coluna | Tipo | Domínio | Origem | Significado |
 |---|---|---|---|---|
-| `ano_mes` | date | ≥ jul/2016 | `data_base` | mês de referência |
+| `ano_mes` | date | jul/2016 a jun/2026 | `data_base` | mês de referência |
 | `uf` | string(2) | 27 estados | `uf` | estado do tomador (CEP de residência para PF, sede para PJ) |
 | `modalidade` | string | 8 modalidades de financiamento | `modalidade` | tipo de financiamento |
 | `qtd_operacoes` | integer | ≥ 0 **ou nulo** | `numero_de_operacoes` | quantidade de operações. A origem traz `-1` como máscara de valor não divulgado — a Silver converte `-1` em **nulo**, nunca em zero: zero afirmaria que não houve operação, o que não é o que a fonte diz |

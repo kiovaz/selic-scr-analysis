@@ -97,12 +97,14 @@ SELIC_URL = (
 # Referência: seção 2.3 de docs/architecture.md
 ANO_INICIO = 2016
 MES_INICIO = 7
-# Conferido na Sprint 1 (2026-09-03): o ZIP de 2026 existe e responde 200;
-# o de 2027 dá 404. Então 2026 é o ano mais recente publicado.
-# O arquivo de 2026 é parcial (100,8 MiB contra 167,9 MiB de um ano cheio),
-# porque o SCR publica com ~30 dias de defasagem — o ano corrente só tem os
-# meses já fechados. Revisar a cada virada de ano.
+# Fim do recorte: junho/2026. De jul/2016 a jun/2026 são 120 meses —
+# exatamente 10 anos, todos já fechados e publicados nas duas bases.
+# O fim é FIXO de propósito: assim o resultado não muda a cada nova
+# publicação mensal do BCB (decisão do grupo, seção 2.3 do architecture.md).
+# ANO_FIM também diz até que ano o loader baixa ZIPs do SCR; a Bronze guarda
+# o ano de 2026 inteiro e o corte em junho é feito na Silver.
 ANO_FIM = 2026
+MES_FIM = 6
 
 # Das 13 modalidades do SCR.data, usamos as 8 de financiamento.
 PREFIXO_MODALIDADE = "Financiamentos"

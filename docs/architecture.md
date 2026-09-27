@@ -64,7 +64,7 @@ Em nenhum documento, apresentação ou código do projeto a palavra "segmento" d
 | Encoding | `utf-8-sig` (UTF-8 com BOM) — **confirmado na Sprint 1**, ver ressalva abaixo |
 | Acesso | Arquivo |
 | Granularidade original | UF × mês × segmento × cliente × modalidade × submodalidade × CNAE/ocupação × porte × origem × indexador |
-| Período disponível | desde jun/2012, atualização mensal (~30 dias após o fechamento) |
+| Período disponível | desde jun/2012, atualização mensal (~60 dias após o fechamento do mês — ver nota abaixo) |
 | Licença | Open Data Commons ODbL |
 | Metodologia | https://www.bcb.gov.br/pda/desig/metodologia_versao2.pdf |
 | Colunas usadas | `data_base`, `uf`, `modalidade`, `numero_de_operacoes`, `carteira_ativa` |
@@ -78,13 +78,14 @@ Em nenhum documento, apresentação ou código do projeto a palavra "segmento" d
 - **`carteira_ativa` está em REAIS**, não em milhares. Aferido pela ordem de grandeza: SP somou R$ 977,0 bilhões em financiamentos em dez/2024.
 - **`numero_de_operacoes` usa `-1` como máscara** para valores abaixo do limite de divulgação do BCB. Não é contagem negativa. Ocorre em 83.511 das 310.432 linhas de dez/2024 (27%) — precisa de tratamento explícito na Silver.
 - O nome exato de uma modalidade é `Financiamentos rurais  (ex-financiamentos rurais e agroindustriais)`, **com dois espaços** antes do parêntese. O filtro por prefixo não se incomoda, mas comparação por igualdade precisa do nome exato.
-- **`ANO_FIM` estava em 2025 e foi corrigido para 2026.** Conferido por requisição ao próprio endpoint: os ZIPs de 2024, 2025 e 2026 respondem 200; o de 2027 dá 404. O arquivo de 2026 é parcial (100,8 MiB contra 167,9 MiB de um ano cheio), coerente com a defasagem de publicação de ~30 dias.
+- **`ANO_FIM` estava em 2025 e foi corrigido para 2026.** Conferido por requisição ao próprio endpoint: os ZIPs de 2024, 2025 e 2026 respondem 200; o de 2027 dá 404. O arquivo de 2026 é parcial (100,8 MiB contra 167,9 MiB de um ano cheio), porque o ano corrente só traz os meses já publicados.
 - Evidência completa em `notebooks/01_exploracao_amostras.ipynb`, com as saídas gravadas.
 
 **Conferido na primeira execução real da Bronze (2026-09-26, ZIP de 2024 baixado no mesmo dia):**
 
 - A `bronze_scr` de 2024 ficou com **3.726.512 linhas**, e cada um dos 12 CSVs bate linha a linha com a Bronze — nenhum registro foi descartado. A diferença de 3 linhas para a contagem da Sprint 1 (3.726.515) está toda em `scrdata_202408.csv` (310.266 → 310.263): dentro do ZIP, esse arquivo tem data de **2026-09-15**, posterior à coleta de 2026-09-03, enquanto os demais meses são de 2026-03-25. Ou seja, **o BCB republica meses já publicados**. Consequência para o projeto: uma nova ingestão do mesmo ano pode trazer dados diferentes do mesmo mês, o que a Sprint 3 (idempotência) e a Silver (deduplicação na chave) precisam considerar.
 - Tempo da ingestão de um ano completo: ~3 min 45 s (download de ~170 MB em ~50 s + leitura, hash e gravação).
+- **A defasagem de publicação é de ~60 dias, não ~30.** Em 2026-09-26 o mês mais recente publicado era julho/2026 (`data_base` 2026-07-31); agosto ainda não havia saído. As versões anteriores deste documento falavam em ~30 dias.
 
 **Filtro aplicado:** o SCR.data tem 13 modalidades de crédito; usamos as 8 que começam com "Financiamentos" (`modalidade LIKE 'Financiamentos%'`): financiamentos, à exportação, à importação, com interveniência, rurais e agroindustriais, imobiliários, de títulos e valores mobiliários, e de infraestrutura e desenvolvimento.
 
@@ -119,17 +120,27 @@ O denominador comum das três é o que vale para este projeto: **uso educacional
 
 ### 2.3. Recorte temporal
 
-**Definido: julho/2016 até a última competência publicada do SCR.data.**
+**Definido: julho/2016 a junho/2026 — 120 meses, exatamente 10 anos, nas duas bases.** *(Decisão do grupo registrada em 2026-09-27; antes o fim era "a última competência publicada do SCR".)*
 
-Justificativa: o SCR.data tem uma quebra de série em junho/2016, quando o limite de identificação das operações caiu de R$ 1.000 para R$ 200. Começar em julho/2016 evita comparar períodos com réguas diferentes. O recorte ainda cobre um ciclo completo de juros (Selic alta em 2016, mínima histórica em 2020-21, alta de novo em 2022-23), que é exatamente o que a pergunta precisa.
+Justificativa do início: o SCR.data tem uma quebra de série em junho/2016, quando o limite de identificação das operações caiu de R$ 1.000 para R$ 200. Começar em julho/2016 evita comparar períodos com réguas diferentes.
+
+Justificativa do fim:
+
+- **Fim fixo, não móvel.** Com "até o último mês publicado", o resultado mudaria a cada publicação mensal do BCB. Com uma data fixa, quem rodar o pipeline depois chega aos mesmos números da entrega (reprodutibilidade).
+- **Só meses fechados.** Nas duas fontes o dado fecha mês a mês: a Selic acumulada no mês é definitiva quando o mês termina, e o SCR de cada mês é a foto do saldo no último dia daquele mês. Em 2026-09-27, jun/2026 estava fechado e publicado nas duas bases.
+- **Dez "anos de estudo" completos, de julho a junho** (jul/2016–jun/2017, …, jul/2025–jun/2026). Qualquer visão por ano usa essa contagem de julho a junho, e nenhum período fica pela metade.
+- O recorte cobre um ciclo completo de juros (Selic alta em 2016, mínima histórica em 2020-21, alta de novo em 2022-23), que é exatamente o que a pergunta precisa.
+
+A Bronze continua guardando tudo o que as fontes entregam (inclusive meses fora do recorte); o corte é aplicado na Silver, usando `ANO_INICIO/MES_INICIO` e `ANO_FIM/MES_FIM` do `config.py`.
+
+**Cuidado conhecido:** o BCB pode republicar meses já publicados (ver 2.1, ago/2024). Uma revisão dentro do recorte muda os números da análise; a detecção de republicação é escopo da Sprint 3.
 
 ### 2.4. Cruzamento
 
 - **Chave:** `ano_mes`.
 - A Selic é nacional: o mesmo valor se repete para as 27 UFs em cada mês. Isso é esperado e deve estar documentado — não é erro de join.
 - **Órfãos a tratar e reportar:**
-  - meses da Selic sem SCR (defasagem de publicação do SCR, ~30 dias);
-  - meses do SCR sem Selic (fora do recorte temporal).
+  - meses da Selic sem SCR e meses do SCR sem Selic. Com o recorte fixo em jul/2016–jun/2026, os dois lados devem ter os mesmos 120 meses depois do corte da Silver; qualquer órfão dentro do recorte é problema a investigar, não defasagem esperada.
   - A contagem exata dos dois lados entra na entrega final.
 
 ---
@@ -209,7 +220,7 @@ assert df.duplicated(["ano_mes", "uf", "modalidade"]).sum() == 0
 
 | Coluna | Tipo | Domínio | Origem | Significado |
 |---|---|---|---|---|
-| `ano_mes` | date | ≥ jul/2016 | `data_base` | mês de referência |
+| `ano_mes` | date | jul/2016 a jun/2026 | `data_base` | mês de referência |
 | `uf` | string(2) | 27 estados | `uf` | estado do tomador (CEP de residência para PF, sede para PJ) |
 | `modalidade` | string | 8 modalidades de financiamento | `modalidade` | tipo de financiamento |
 | `qtd_operacoes` | integer | ≥ 0 | `numero_de_operacoes` | quantidade de operações |
@@ -271,7 +282,7 @@ assert df.duplicated(["ano_mes", "uf", "modalidade"]).sum() == 0
 
 **Ponto de corte (t0):** o último mês **publicado** do SCR.data, não o mês corrente.
 
-Isso é deliberado. O SCR.data sai com cerca de 30 dias de atraso, então no momento real da decisão o dado do mês corrente ainda não existe. Usar o mês corrente como t0 seria dar ao modelo uma informação que na prática ele não teria — vazamento operacional.
+Com o recorte fixo da seção 2.3, **t0 = junho/2026**, o último mês do recorte (já publicado na data da análise). Isso é deliberado. O SCR.data sai com cerca de 60 dias de atraso, então no momento real da decisão o dado do mês corrente ainda não existe. Usar o mês corrente como t0 seria dar ao modelo uma informação que na prática ele não teria — vazamento operacional.
 
 **Split: temporal.** Treino nos meses mais antigos, teste nos mais recentes.
 
