@@ -99,7 +99,7 @@ def test_scr_timeout_pula_o_ano_sem_deixar_zip(tmp_path):
     with patch("src.ingestion.scr_file_loader.requests.get", side_effect=falso_get):
         caminhos = baixar_zips(tmp_path, anos=[2023, 2024])
 
-    assert [p.name for p in caminhos] == [config.SCR_NOME_ZIP.format(ano=2024)]
+    assert [(ano, p.name) for ano, p in caminhos] == [(2024, config.SCR_NOME_ZIP.format(ano=2024))]
     assert not (tmp_path / config.SCR_NOME_ZIP.format(ano=2023)).exists()
     assert list(tmp_path.glob("*.parcial")) == []
 
@@ -132,7 +132,8 @@ def test_scr_bronze_guarda_todas_as_colunas_como_texto(pastas):
     for meta in ["_ingestion_timestamp", "_ingestion_date", "_source_system",
                  "_source_object", "_load_id", "_ingestion_mode", "_record_hash"]:
         assert meta in bronze.columns
-    assert set(bronze["_source_object"]) == {"scrdata_202401.csv"}
+    # _source_object = nome do CSV + versão (data do arquivo dentro do ZIP)
+    assert bronze["_source_object"].str.fullmatch(r"scrdata_202401\.csv@\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}").all()
 
 
 def test_scr_registro_sujo_entra_intacto_e_sem_quarentena(pastas):
@@ -278,7 +279,7 @@ def test_definicao_de_pronto_sprint2(pastas, caplog):
     assert len(bronze_scr) == len(LINHAS_SCR)          # nada do CSV válido foi descartado
     assert "XX" in set(bronze_scr["uf"])               # registro sujo entra intacto
     assert set(bronze_scr["_load_id"]) == {load_id_scr}
-    assert set(bronze_scr["_source_object"]) == {"scrdata_202401.csv"}
+    assert set(bronze_scr["_source_object"].str.split("@").str[0]) == {"scrdata_202401.csv"}
     assert "scrdata_202402.csv" in caplog.text         # ilegível rejeitado com log
 
     bronze_selic = _ler_bronze("bronze_selic")

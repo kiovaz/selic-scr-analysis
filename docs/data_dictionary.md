@@ -113,9 +113,9 @@ categoria (texto `AAAA-MM-DD`).
 | `_ingestion_timestamp` | timestamp | momento exato da ingestão |
 | `_ingestion_date` | date | data da ingestão, usada para particionar |
 | `_source_system` | string | `scr_data` ou `ipeadata` |
-| `_source_object` | string | nome do arquivo CSV ou URL do endpoint |
+| `_source_object` | string | SCR: nome do CSV **+ versão** (data do arquivo dentro do ZIP), ex.: `scrdata_202408.csv@2026-09-15T02:38:32`. Selic: URL do endpoint |
 | `_load_id` | string | identificador único da execução |
-| `_ingestion_mode` | string | `full` ou `incremental` |
+| `_ingestion_mode` | string | SCR: sempre `full` (carga por arquivo). Selic: `full` na primeira carga, `incremental` nas seguintes |
 | `_record_hash` | string | SHA-256 do conteúdo do registro + `_source_object` |
 
 ---
@@ -170,6 +170,30 @@ são preenchidos.
 
 ### `gold_ml_dataset`
 *(A definir na Sprint 5 — ver seção 6 de `architecture.md`.)*
+
+---
+
+## Tabelas de controle (`data/raw/_controle/`)
+
+Arquivos JSON pequenos que dizem o que já foi ingerido. São o que torna a ingestão idempotente
+(seção 3.2 do `architecture.md`). Fora do Git.
+
+### `controle_scr.json`
+Um item por ano do SCR:
+
+| Campo | Significado |
+|---|---|
+| `etag` | versão do ZIP publicada pelo BCB (cabeçalho `ETag`) na última vez que o ZIP foi baixado |
+| `csvs.<nome>.data` | data do arquivo CSV dentro do ZIP (ISO 8601) — é a versão que vai no `_source_object` |
+| `csvs.<nome>.crc32` | CRC32 do CSV informado pelo índice do ZIP (hexadecimal) |
+| `csvs.<nome>.source_object` | `_source_object` com que essa versão foi gravada na Bronze |
+| `csvs.<nome>.status` | `em_andamento` (gravação começou) ou `completo` (todas as linhas gravadas) |
+
+### `controle_selic.json`
+
+| Campo | Significado |
+|---|---|
+| `watermark` | maior `VALDATA` já gravada na `bronze_selic`, no formato `AAAA-MM-DD` |
 
 ---
 
