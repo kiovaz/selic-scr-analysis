@@ -81,7 +81,7 @@ O pipeline faz, em ordem: ingestão Bronze (SCR e Selic) → Silver → Gold →
   python scripts/run_pipeline.py --anos 2024
   ```
 
-  Com um ano só, a Silver/Gold ficam curtas e a análise e o ML não têm meses suficientes — serve para conferir que o ambiente funciona, não para ver os resultados.
+  Com um ano só, a Silver e a Gold ficam curtas, a análise não tem meses suficientes e **o ML e a decisão são pulados** (o pipeline avisa) — serve para conferir que o ambiente funciona, não para ver os resultados. ⚠ Esse teste **sobrescreve os gráficos de `docs/figuras/`** com resultados de um ano só: não os commite; rode o pipeline completo (ou `git checkout -- docs/figuras`) antes.
 
 ### 6. Ver os resultados
 

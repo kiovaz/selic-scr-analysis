@@ -177,3 +177,9 @@ def test_saidas_reprodutiveis_e_producao():
     assert len(prod_1) == base[base["conjunto"] == "producao"].shape[0]
     assert prod_1["prob_ganha_forca"].between(0, 1).all()
     assert set(r1["resumo"]["efeito_selic_auc_por_bloco"]) == {str(a) for a in config.BLOCOS_JANELA_MOVEL}
+
+
+def test_ml_pulado_com_poucos_dados():
+    """Com poucos meses (ex.: --anos 2024) não há coorte: o ML avisa e não quebra."""
+    base, _ = montar_base(gold_sintetica().iloc[:0])
+    assert treino.executar_ml(base, []) is None

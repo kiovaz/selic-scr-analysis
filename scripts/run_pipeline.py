@@ -143,6 +143,9 @@ def main():
                   f"ao acaso; se errarmos, o custo é ~{n['erros_esperados_modelo']:.1f} expansões por trimestre em "
                   f"mercados que estão perdendo força.")
             print(f"  Lista: {config.ARQUIVO_RECOMENDACAO}")
+    else:
+        print("  ML e decisão pulados: dados insuficientes (a coorte exige os 120 meses do recorte).")
+        print("  Rode o pipeline completo, sem --anos, para treinar o modelo e gerar a recomendação.")
 
 
 if __name__ == "__main__":
