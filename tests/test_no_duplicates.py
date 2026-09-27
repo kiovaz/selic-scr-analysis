@@ -92,3 +92,10 @@ def test_silver_sem_duplicata_na_chave():
     assert set(silver_scr["volume_rs"]) == {20.0}                   # só a versão vigente (não 40)
     assert silver_selic.duplicated(["ano_mes"]).sum() == 0
     assert len(silver_selic) == 2
+
+
+    # Gold: definição de pronto da Sprint 4 — a chave passa nas TRÊS tabelas.
+    from src.transformation.gold_credito_selic import construir_gold
+    gold = construir_gold()
+    assert len(gold) == 2
+    assert gold.duplicated(["ano_mes", "uf", "modalidade"]).sum() == 0
