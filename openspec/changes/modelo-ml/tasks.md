@@ -37,4 +37,5 @@
   - **Produção (set–nov/2026):** probabilidade média 0,527, 95 de 174 combinações acima de 0,5; os extremos são combinações pequenas (ex.: AP exportação 0,95; PR títulos 0,01). Nenhum alerta > 0,95.
 - [x] 5.2 Rodar de novo e confirmar métricas e previsões idênticas. Anotar.
   - **Resultado:** segunda execução com `ml_resultados.json` (exceto `gerado_em`), `ml_previsoes_teste.parquet` e `ml_previsao_producao.parquet` **idênticos**.
-- [ ] 5.3 `pytest -v`, CI verde no PR para o `develop` e commits atômicos em pt-BR **sem linha de atribuição**.
+- [x] 5.3 `pytest -v`, CI verde no PR para o `develop` e commits atômicos em pt-BR **sem linha de atribuição**.
+  - **Resultado:** 88 testes passando; PR #16 com CI verde em Python 3.11; commits sem linha de atribuição.
