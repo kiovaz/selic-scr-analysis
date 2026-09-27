@@ -8,7 +8,7 @@ A Silver está pronta (PR #12): `silver_scr` com 24.578 linhas e `silver_selic` 
 
 **Achado que entra como regra:** em 7.945 grupos (32%) toda a quantidade estava escondida, e a `qtd_operacoes` é 0. A variação % da quantidade não existe a partir de zero, então `var_qtd_pct` fica vazia nesses casos. Isso reforça o **volume** como indicador principal (decisão já registrada na seção 5.1).
 
-A publicação da Gold na nuvem (Neon + Next.js na Vercel) foi aprovada pelo tech lead, mas fica para uma sprint futura, numa change própria.
+A publicação da Gold na nuvem (Neon + Next.js na Vercel) foi aprovada pelo grupo, mas fica para uma sprint futura, numa change própria.
 
 ## What Changes
 

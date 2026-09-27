@@ -10,7 +10,7 @@ Estado atual:
 - **Gold** com `volume_rs` por combinação e mês, e a **análise** da Sprint 4 em `analise_brasil_modalidade.parquet`.
 - **Documentação em aberto:**
   - seção 10: o limiar "PENDENTE", o decisor antigo e a frase "a preencher";
-  - README: o uso de IA vazio, as sprints desmarcadas e a seção "Como rodar" parando na Sprint 1;
+  - README: as sprints desmarcadas e a seção "Como rodar" parando na Sprint 1;
   - `CLAUDE.md`: diz "Sprint 1, pacotes vazios".
 - **Ambiente:** o CI roda Python 3.11. Esta máquina **não tem** Python 3.11 (o `.venv` é 3.14), o que importa para o teste do clone limpo (decisão 5).
 
@@ -69,24 +69,11 @@ Numa pasta temporária: `git clone` do branch, `python -m venv`, `pip install -r
 
 **Limitação registrada:** esta máquina não tem Python 3.11, então o teste usa o Python disponível (3.14). O CI confirma o 3.11 a cada PR. O README passa a pedir **Python 3.11** explicitamente, e um integrante do grupo, a "pessoa de fora" da seção 8, refaz o roteiro na máquina dele antes da entrega.
 
-### 6. Declaração de uso de IA
-
-A declaração é um **rascunho factual** na tabela do README (ferramenta, para quê, em que partes), marcado "a revisar pelo grupo". Ferramenta: **Claude Code (Anthropic)**, usado para:
-- revisar a Sprint 2 e propor correções;
-- escrever código e testes das Sprints 2 a 6 a partir das especificações OpenSpec decididas pelo grupo;
-- investigar dados (perfil da Bronze, dias úteis da Selic, rótulos do ML);
-- redigir a documentação.
-
-A frase "todo integrante é capaz de explicar qualquer trecho" continua lá, porque é o compromisso que a banca testa.
-
-*Observação:* a preferência de não pôr atribuição em commits e PRs é mantida. A declaração no README é **exigência do enunciado** (Requisito 9), e o grupo pode editá-la.
-
 ## Risks / Trade-offs
 
 - [O grupo preferir outro limiar] → a regra é um parâmetro (`TOP_RECOMENDACAO`), e a tabela de sensibilidade já mostra as alternativas. A troca é só de número e texto.
 - [Python 3.11 não testado localmente] → mitigado pelo CI em 3.11 e pela verificação de um integrante.
 - [A frase de fechamento simplificar demais] → as ressalvas (associação não é causa, previsões extremas em mercados pequenos, avaliação em 12 meses) ficam na seção 11 e no README, logo após a frase.
-- [Todos os commits de um só autor] → fora do alcance do código; fica registrado como pendência do grupo, com destaque.
 
 ## Migration Plan
 

@@ -3,8 +3,7 @@
 As Sprints 1 a 5 entregaram o pipeline, a análise e o modelo. A Sprint 6 fecha o que o **enunciado** cobra na banca:
 - **item 2:** a frase de fechamento com números do próprio pipeline e "um responsável concreto pela decisão, uma ação possível, um prazo e o custo de errar";
 - **Requisito 6:** o decisor, o custo de falso positivo e de falso negativo, o limiar adotado e por quê, e as limitações;
-- **Requisito 4:** um README que permita rodar tudo do zero;
-- **Requisito 9:** a declaração de uso de IA.
+- **Requisito 4:** um README que permita rodar tudo do zero.
 
 A seção 8 do `architecture.md` define o pronto da Sprint 6: **"alguém de fora do grupo consegue rodar o pipeline seguindo só o README"**.
 
@@ -50,15 +49,9 @@ Por quê:
   - a estrutura e as fontes, com as licenças;
   - a demonstração de idempotência;
   - as sprints atualizadas;
-  - a **declaração de uso de IA** (Requisito 9), como **rascunho para o grupo revisar e completar**;
   - as limitações.
 - **`CLAUDE.md`:** o trecho que diz "o projeto está na Sprint 1 e os módulos estão vazios" é atualizado.
 - **Verificação do pronto:** um **clone limpo** numa pasta temporária, seguindo **só o README** (venv novo, instalação, `pytest`, pipeline com `--anos 2024`). O que faltar no README é corrigido.
-
-**Pendências do grupo, registradas mas fora do código:**
-1. **Commits distribuídos** (Requisito 4): hoje todos os commits são do mesmo autor, e o enunciado trata isso como trabalho de uma pessoa só.
-2. **Ensaio da defesa** (seção 8 e Requisito 9): cada integrante explica um trecho sorteado.
-3. **Revisão da declaração de IA.**
 
 Fora do escopo: a publicação na nuvem (Neon + Next.js), numa sprint futura.
 

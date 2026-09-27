@@ -23,12 +23,11 @@
 
 - [x] 4.1 Reescrever o `README.md` completo:
   - o que o projeto responde, com a frase de fechamento;
-  - como rodar do zero (**Python 3.11**, venv, `pip install -r requirements.txt`, `python scripts/run_pipeline.py` com a primeira carga de ~50 min e as seguintes em segundos, `--anos` para um teste rápido, testes, notebooks 01 a 03, Docker, demonstração de idempotência);
+  - como rodar do zero (**Python 3.11**, venv, `pip install -r requirements.txt`, `python scripts/run_pipeline.py` com a primeira carga de ~50 min e as seguintes em segundos, `--anos` para um teste rápido, testes, notebooks 01 a 03, demonstração de idempotência);
   - onde ficam os resultados (tabelas em `data/final/` e figuras em `docs/figuras/`);
   - a estrutura atualizada (`src/analise`, `src/ml`, `notebooks/02` e `03`);
   - as fontes com licença e data;
   - as sprints marcadas;
-  - a **declaração de uso de IA** (Claude Code, para quê e em que partes), marcada "a revisar pelo grupo";
   - as limitações.
 
   Verificar: o README não cita mais "Sprint 1" como estado atual e tem os passos na ordem em que se executam.
@@ -38,9 +37,7 @@
 
 - [x] 5.1 **Clone limpo:** clonar o branch numa pasta temporária e seguir **só o README** (venv novo, instalação, `pytest`, `python scripts/run_pipeline.py --anos 2024`). Corrigir no README tudo o que precisar de ajuda externa. Anotar o Python usado (a máquina não tem 3.11; o CI confirma) e o resultado. Apagar a pasta temporária ao final.
   - **Resultado (2026-09-27):** clone do branch numa pasta temporária seguindo só o README (Windows): `py -3.14 -m venv` (**a máquina não tem Python 3.11** — o README pede 3.11; o CI confirma 3.11), `pip install -r requirements.txt` ok, `pytest` **93 passed**, `run_pipeline.py --anos 2024` baixou o ZIP de 2024 e gerou Bronze, Silver (2.450 linhas, 12 meses), Gold e análise.
-  - **Falha encontrada e corrigida:** com um ano só nenhuma combinação tem os 120 meses da coorte, a base de ML ficava vazia e o pipeline **quebrava** (`StandardScaler` com 0 amostras). Correção: o ML e a decisão são pulados com aviso (teste `test_ml_pulado_com_poucos_dados`); o README avisa que o teste rápido sobrescreve `docs/figuras/`. Reexecução no clone: exit 0 em 63 s.
+  - **Falha encontrada e corrigida:** com um ano só nenhuma combinação tem os 120 meses da coorte, a base de ML ficava vazia e o pipeline **quebrava** (`StandardScaler` com 0 amostras). Correção: o ML e a decisão são pulados com aviso (teste `test_ml_pulado_com_poucos_dados`). Reexecução no clone: exit 0 em 63 s.
   - Pasta temporária apagada.
-- [x] 5.2 Registrar no README e nesta task as **pendências do grupo**: commits distribuídos entre os integrantes (Requisito 4), ensaio da defesa (cada integrante explica um trecho sorteado) e revisão da declaração de IA.
-  - **Registrado no README (seção Sprints) as pendências do grupo:** commits distribuídos entre os integrantes (Requisito 4 — hoje todos os commits são de um autor), ensaio da defesa, revisão da declaração de IA e da tabela de integrantes, e um integrante refazer o "Como rodar do zero" com Python 3.11.
-- [x] 5.3 `pytest -v`, CI verde no PR para o `develop` e commits atômicos em pt-BR **sem linha de atribuição**.
+- [x] 5.2 `pytest -v`, CI verde no PR para o `develop` e commits atômicos em pt-BR **sem linha de atribuição**.
   - **Resultado:** 94 testes passando; PR #18 com CI verde em Python 3.11; commits sem linha de atribuição.

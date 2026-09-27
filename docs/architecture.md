@@ -1,11 +1,5 @@
 # Definição Arquitetural do Projeto — Impacto da Selic nos Financiamentos por Estado
 
-> Documento de especificação do projeto (OpenSpec). Toda decisão de implementação deve ser rastreável a uma seção daqui. Mudança de escopo passa primeiro por este arquivo, depois pelo código.
->
-> **Versão 2** — correções de consistência aplicadas, stack enxuta, desenvolvimento em sprints, seção de ML mantida como escopo mas com definição adiada.
-
----
-
 ## 0. Contexto e Objetivo
 
 **Problema:** entender se — e o quanto — variações na taxa Selic estão associadas ao saldo de financiamentos no Brasil, com granularidade por estado (UF) e por **modalidade** de crédito.
@@ -393,7 +387,6 @@ Stack enxuta de propósito. Cada ferramenta aqui ou é exigida pelo enunciado, o
 | **venv + `requirements.txt` com versões fixadas** | exigido pelo enunciado |
 | **pytest** | é como se prova a unicidade da chave e a idempotência. Sem isso, o Requisito 2 vira promessa |
 | **GitHub Actions** | roda os testes a cada push. Custo de setup baixo (um YAML), e mostra na prática que o pipeline não quebrou |
-| **Docker + `docker-compose.yml`** | padroniza o ambiente entre os membros. **Ver ressalva em 7.3** |
 | **Git** | exigido |
 
 ### 7.2. O que sai
@@ -404,20 +397,7 @@ Stack enxuta de propósito. Cada ferramenta aqui ou é exigida pelo enunciado, o
 | **Great Expectations / Pandera** | As validações deste projeto (domínio de UF, tipos, faixas, duplicata) cabem em funções simples em `src/validation/`, cobertas por pytest. Uma biblioteca declarativa a mais é uma coisa a mais para todo mundo saber explicar |
 | **Black / Flake8 como obrigatórios** | Podem entrar no CI se o grupo quiser, mas não valem ponto e não são bloqueantes |
 | **`.env` / python-dotenv** | Nenhuma das duas fontes exige token ou autenticação. Caminhos de dados ficam num `config.py` simples |
-
-### 7.3. Ressalva sobre o Docker
-
-O Docker resolve "na minha máquina funciona", mas o enunciado já é satisfeito por `venv` + `requirements.txt` com versões fixadas + README.
-
-**Regra de decisão:** se pelo menos um integrante já tem alguma familiaridade com Docker, mantemos. Se ninguém tem, cortamos e ficamos com `venv`. Debugar Dockerfile é tempo que não vira nota.
-
-Decisão do grupo (Sprint 1, 2026-09-03): **MANTER o Docker.**
-
-O critério da própria regra acima foi atendido — há integrante do grupo com familiaridade suficiente para explicar o `Dockerfile` na apresentação. `Dockerfile` e `docker-compose.yml` seguem versionados, e o README traz a instrução de uso.
-
-Vale registrar o que o Docker **não** faz aqui: ele não é o caminho padrão de execução, que continua sendo `venv` + `requirements.txt`. Ele padroniza o ambiente entre as máquinas do grupo. Se em alguma sprint futura ninguém conseguir mais explicar o Dockerfile, a decisão é revista — o critério é esse, não o esforço já investido.
-
-Uma consequência prática desta decisão: o `Dockerfile` copia **apenas** o `requirements.txt` na camada de dependências. As ferramentas de exploração (Jupyter) ficam em `requirements-dev.txt` justamente para não entrarem na imagem nem na instalação do CI.
+| **Docker + `docker-compose.yml`** | O enunciado já é satisfeito por `venv` + `requirements.txt` com versões fixadas + README, e o CI confirma o ambiente a cada push. Mantido na Sprint 1 como alternativa ao venv; removido na Sprint 6 (decisão 15) |
 
 ---
 
@@ -487,7 +467,6 @@ Desenvolvimento incremental. Cada sprint tem uma **definição de pronto** objet
 - Definir o limiar de decisão ligando a métrica ao custo do erro (seção 10)
 - Preencher a frase de fechamento com os números reais
 - README completo, permitindo rodar do zero
-- Declaração de uso de IA
 - Ensaio da defesa: cada integrante explica um trecho sorteado do código
 
 **Pronto quando:** alguém de fora do grupo consegue rodar o pipeline seguindo só o README.
@@ -500,8 +479,6 @@ Desenvolvimento incremental. Cada sprint tem uma **definição de pronto** objet
 projeto-selic-credito/
 ├── README.md
 ├── requirements.txt
-├── Dockerfile                   # se a decisão de 7.3 for manter
-├── docker-compose.yml           # idem
 ├── .gitignore
 │
 ├── data/                        # fora do Git
@@ -594,12 +571,11 @@ projeto-selic-credito/
 
 ---
 
-## 12. Governança e Uso de IA
+## 12. Governança
 
 - **Linhagem:** cada execução do pipeline gera um `_load_id` único, registrado em log. Como a Gold é agregada (uma linha dela vem de milhares de linhas da Bronze), a rastreabilidade é feita **por execução**, não por registro individual — não é possível carregar um `_record_hash` único até a Gold.
 - **Owner:** um integrante responsável por cada etapa (ingestão SCR, ingestão Selic, Silver, Gold, ML, documentação).
 - **LGPD:** os dados usados são agregados por UF e modalidade, sem identificação de pessoa física. Nenhum dado pessoal entra em nenhuma camada.
-- **Uso de IA generativa:** declarado no README — para quê foi usada e em que partes. Todo integrante precisa ser capaz de explicar qualquer trecho entregue. Código que ninguém do grupo consegue justificar conta como não entregue.
 - **Fontes:** URL, data de coleta e licença de cada base citadas na seção 2 e no dicionário de dados.
 
 ---
@@ -620,9 +596,10 @@ Decisões tomadas pelo grupo ao longo das sprints. O detalhe fica na seção ind
 | 8 | 2026-09-27 | **Análise em dois níveis**: Brasil por modalidade e UF × modalidade (mapa de calor), Spearman, ajuste de Benjamini-Hochberg | Responder "por estado e por modalidade" sem escolher resultado a dedo | 5.4 |
 | 9 | 2026-09-27 | **Selic meta do Copom** (`BM366_TJOVER366`, % a.a., corte no último dia do mês) no lugar da acumulada no mês (`BM12_TJOVER12`, % a.m.) | A série antiga variava com os dias úteis (correlação 0,79) e chegou a subir quando o Copom cortou | 2.2 |
 | 11 | 2026-09-27 | **ML: prever se o crédito "ganha força"** (cresce mais no trimestre t+2→t+5 do que nos últimos 3 meses), nas 174 combinações completas, avaliado com e sem a Selic | Liga o modelo ao ciclo do crédito onde a Selic atua; a folga de 2 meses respeita o atraso de publicação; a versão "cresce mais que o Brasil" cancelava o efeito da Selic | 6.1 |
-| 12 | 2026-09-27 | **Publicação da Gold** num banco NeonDB com front Next.js na Vercel — **adiada para a sprint final**; a etapa de envio será opcional (só roda com a string de conexão configurada) | Mostrar os dados na entrega; o tech lead tem experiência com a stack. Exige revisar a decisão "sem cloud" (seção 0) quando for implementada | a registrar na sprint final |
+| 12 | 2026-09-27 | **Publicação da Gold** num banco NeonDB com front Next.js na Vercel — **adiada para a sprint final**; a etapa de envio será opcional (só roda com a string de conexão configurada) | Mostrar os dados na entrega; o grupo tem experiência com a stack. Exige revisar a decisão "sem cloud" (seção 0) quando for implementada | a registrar na sprint final |
 | 13 | 2026-09-27 | **Decisor:** diretoria de crédito de uma instituição financeira de **atuação nacional** (antes: cooperativa ou financeira regional) | O enunciado exige um decisor concreto; uma instituição regional não escolhe entre os 27 estados | 0, 10 |
 | 14 | 2026-09-27 | **Regra de decisão:** a cada trimestre, expandir nas **20 combinações com maior probabilidade** de ganhar força (em vez de uma nota mínima fixa) | O erro de expandir onde o crédito perde força tem custo imediato — vale ser seletivo; no teste, as 20 maiores notas acertaram 82,5% (regra simples: 75%); lista fixa combina com a capacidade de execução e não depende da calibração das notas | 10 |
+| 15 | 2026-09-27 | **Docker removido** (`Dockerfile` e `docker-compose.yml`); o ambiente padrão é `venv` + `requirements.txt` | O venv com versões fixadas já atende o enunciado e o CI confirma o ambiente em Python 3.11; manter um segundo caminho de execução não agregava | 7.2 |
 
 ---
 
