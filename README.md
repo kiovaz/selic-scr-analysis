@@ -2,27 +2,21 @@
 
 Pipeline de dados que cruza o **saldo de financiamentos por estado e modalidade** (SCR.data / Banco Central) com a **Selic meta do Copom** (Ipeadata / Ipea), mede a associação entre os dois e treina um modelo que recomenda, a cada trimestre, **em quais estados e modalidades vale expandir a oferta de crédito**.
 
-Projeto Integrador — Da Ingestão à Decisão. **Status:** Sprints 1 a 6 concluídas (pipeline, análise, modelo e decisão). A publicação da Gold na nuvem fica para depois.
-
 ---
 
 ## O que o projeto responde
 
 > "Cruzando o **SCR.data (Banco Central)** e a **Selic meta do Copom (Ipeadata)**, identificamos que **o saldo do crédito imobiliário anda junto com a Selic de 4 meses antes (Spearman +0,42), mas a Selic não antecipa o trimestre seguinte — o que antecipa é o ritmo recente do próprio crédito em cada estado**. Recomendamos que **a diretoria de crédito de uma instituição financeira de atuação nacional** faça **a expansão da oferta de financiamento nas 20 combinações estado × modalidade com maior probabilidade de o crédito ganhar força** nos próximos **3 meses (set–nov/2026)**, priorizando **as de maior saldo dentro da lista**. Se agir, o ganho esperado é **acertar ~16,5 de 20 expansões por trimestre (82,5%), contra ~15,0 da regra simples e ~10,0 ao acaso**; se errarmos, o custo é **~3,5 expansões por trimestre em mercados que estão perdendo força — capital, captação e equipe comercial alocados sem retorno no trimestre**."
 
-Os números acima são gerados pelo pipeline (`data/final/frase_fechamento.json`) e impressos no fim de `python scripts/run_pipeline.py`. Custos do erro, regra de decisão e sensibilidade: seção 10 do [`docs/architecture.md`](docs/architecture.md). Ressalvas: [Limitações](#limitações-conhecidas).
+Os números acima são gerados pelo pipeline (`data/final/frase_fechamento.json`) e impressos no fim de `python scripts/run_pipeline.py`. Custos do erro, regra de decisão e sensibilidade: seção 10 do [`docs/architecture.md`](docs/architecture.md). Ressalvas: [Limitações](docs/data_dictionary.md#limitações-conhecidas).
 
 ---
 
 ## Integrantes
 
-| Nome | Responsável por |
-|---|---|
-| *(preencher)* | ingestão SCR.data |
-| *(preencher)* | ingestão Selic |
-| *(preencher)* | camadas Silver e Gold |
-| *(preencher)* | análise estatística e ML |
-| *(preencher)* | documentação e testes |
+- Caio Vasconcelos
+- Yasmin dos Santos
+- Ana Alice Dias
 
 ---
 
@@ -73,7 +67,7 @@ python scripts/run_pipeline.py
 
 O pipeline faz, em ordem: ingestão Bronze (SCR e Selic) → Silver → Gold → análise estatística → modelo de ML → decisão. No fim, imprime a frase de fechamento com os números e a lista do trimestre.
 
-- **A primeira execução leva ~50 minutos**: baixa 11 ZIPs do SCR (~1,5 GB, 2016 a 2026) e grava ~34 milhões de linhas na Bronze. Deixe o computador **na tomada e sem suspender** — se ele dormir, a execução fica parada até acordar.
+- **A primeira execução leva ~50 minutos**: baixa 11 ZIPs do SCR (~1,5 GB, 2016 a 2026) e grava ~34 milhões de linhas na Bronze.
 - **As execuções seguintes levam poucos minutos**: o pipeline consulta a versão de cada ZIP no BCB sem baixar, vê que nada mudou e não regrava a Bronze (idempotência).
 - **Teste rápido** com um só ano do SCR (um ZIP de ~170 MB, uns 5 minutos):
 
@@ -81,7 +75,7 @@ O pipeline faz, em ordem: ingestão Bronze (SCR e Selic) → Silver → Gold →
   python scripts/run_pipeline.py --anos 2024
   ```
 
-  Com um ano só, a Silver e a Gold ficam curtas, a análise não tem meses suficientes e **o ML e a decisão são pulados** (o pipeline avisa) — serve para conferir que o ambiente funciona, não para ver os resultados. ⚠ Esse teste **sobrescreve os gráficos de `docs/figuras/`** com resultados de um ano só: não os commite; rode o pipeline completo (ou `git checkout -- docs/figuras`) antes.
+  Com um ano só, a Silver e a Gold ficam curtas, a análise não tem meses suficientes e **o ML e a decisão são pulados** (o pipeline avisa) — serve para conferir que o ambiente funciona, não para ver os resultados.
 
 ### 6. Ver os resultados
 
@@ -91,7 +85,7 @@ O pipeline faz, em ordem: ingestão Bronze (SCR e Selic) → Silver → Gold →
 | Números da frase de fechamento | `data/final/frase_fechamento.json` |
 | Modelo (métricas, com e sem Selic, previsões) | `data/final/ml_resultados.json`, `ml_previsao_producao.parquet` |
 | Análise estatística (tabelas) | `data/final/analise_*.parquet` |
-| Gráficos | `docs/figuras/` (versionados no Git) |
+| Gráficos | `docs/figuras/` |
 | Relatórios das camadas | `data/processed/_relatorio_silver.json`, `data/final/_relatorio_gold.json` |
 
 Os **notebooks** explicam cada etapa lendo esses arquivos (não recalculam nada). O Jupyter fica em `requirements-dev.txt`, que já inclui o `requirements.txt`:
@@ -107,7 +101,7 @@ jupyter lab
 | `notebooks/02_analise_estatistica.ipynb` | Sprint 4: Selic × crédito, por modalidade e por estado |
 | `notebooks/03_modelo.ipynb` | Sprint 5: o modelo, os baselines, o efeito da Selic e o checklist anti-vazamento |
 
-### 7. Demonstrar a idempotência (defesa)
+### 7. Demonstrar a idempotência
 
 Rodar a ingestão de novo não pode mudar a contagem de linhas (seção 3.2 do `architecture.md`):
 
@@ -126,14 +120,6 @@ python scripts/baixar_amostras.py
 ```
 
 Baixa uma amostra de 2024 do SCR e a série da Selic e imprime um diagnóstico (encoding, colunas, contagens). Não faz ingestão. Se a amostra já estiver em `data/raw/_amostras/`, reaproveita; `--forcar-download` baixa de novo.
-
-### 9. Docker (alternativa ao venv)
-
-```bash
-docker compose run --rm pipeline
-```
-
-A imagem instala só o `requirements.txt` (sem Jupyter). O caminho padrão continua sendo o venv.
 
 ---
 
@@ -193,38 +179,3 @@ A imagem instala só o `requirements.txt` (sem Jupyter). O caminho padrão conti
 
 As decisões de cada sprint estão na seção 13 do `architecture.md` (Registro de decisões), e as propostas completas em `openspec/changes/archive/`.
 
-**Pendências do grupo antes da entrega:**
-1. **Commits distribuídos** (Requisito 4 do enunciado): o histórico precisa ter commits de todos os integrantes.
-2. **Ensaio da defesa:** cada integrante explica um trecho sorteado do código.
-3. **Revisar a declaração de uso de IA** abaixo e preencher a tabela de integrantes.
-4. **Um integrante refaz o "Como rodar do zero"** na própria máquina, com Python 3.11.
-
----
-
-## Uso de IA generativa
-
-*(Requisito 9 do enunciado. **Rascunho a revisar e completar pelo grupo.**)*
-
-| Ferramenta | Usada para | Em quais partes |
-|---|---|---|
-| Claude Code (Anthropic) | Revisar a ingestão da Sprint 2 e propor correções; escrever código e testes a partir das especificações OpenSpec decididas pelo grupo; investigar os dados (perfil da Bronze, efeito dos dias úteis na Selic, balanço do rótulo do ML); redigir a documentação | `src/` (ingestion, validation, transformation, analise, ml), `tests/`, `scripts/`, `notebooks/02` e `03`, `docs/`, `openspec/` — Sprints 2 a 6 |
-
-As decisões de escopo (pergunta de pesquisa, recorte, tratamento da quantidade, troca da série da Selic, pergunta do modelo, decisor e limiar) foram tomadas pelo grupo e estão registradas na seção 13 do `architecture.md`.
-
-Todo integrante do grupo é capaz de explicar qualquer trecho do que foi entregue.
-
----
-
-## Limitações conhecidas
-
-1. O SCR.data traz o **saldo** da carteira no fim do mês, não os financiamentos novos. A variação mensal é uma aproximação de fluxo.
-2. O estado vem do CEP de residência (PF) ou da sede (PJ), não de onde o dinheiro é usado.
-3. Valores em reais nominais, sem correção pela inflação.
-4. A Selic é nacional — não existe taxa por estado.
-5. **Associação não é causa:** renda, emprego, safra e política de crédito dos bancos não são controlados.
-6. A **quantidade de operações é subestimada** (o BCB esconde 28% das linhas); a análise e o modelo usam o **volume**.
-7. **A Selic não antecipa o trimestre seguinte:** o modelo com e sem Selic tem desempenho equivalente.
-8. As probabilidades mais extremas do modelo aparecem em **mercados pequenos**; por isso a recomendação prioriza, dentro da lista, as de maior saldo.
-9. A avaliação final cobre 12 meses (fev/2025–jan/2026), um só regime de juros altos.
-
-Lista completa e o que seria preciso para afirmar mais: `docs/architecture.md`, seção 11.
