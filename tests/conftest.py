@@ -47,6 +47,9 @@ def dados_isolados(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "ARQUIVO_ML_RESULTADOS", final / "ml_resultados.json")
     monkeypatch.setattr(config, "ARQUIVO_ML_PREVISOES_TESTE", final / "ml_previsoes_teste.parquet")
     monkeypatch.setattr(config, "ARQUIVO_ML_PREVISAO_PRODUCAO", final / "ml_previsao_producao.parquet")
+    monkeypatch.setattr(config, "ARQUIVO_RECOMENDACAO", final / "recomendacao_trimestre.parquet")
+    monkeypatch.setattr(config, "ARQUIVO_SENSIBILIDADE", final / "sensibilidade_limiar.parquet")
+    monkeypatch.setattr(config, "ARQUIVO_FRASE", final / "frase_fechamento.json")
     return tmp_path
 
 
