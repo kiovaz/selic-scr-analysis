@@ -4,7 +4,6 @@ Permite ao grupo verificar, sob demanda e sem autenticação, que as duas fontes
 
 ## Requirements
 
-
 ### Requirement: Diagnóstico de acesso às duas fontes
 
 O projeto SHALL oferecer um comando único, executável a partir da raiz do repositório e sem credenciais, que tenta acessar o SCR.data e a Selic do Ipeadata e reporta o resultado de cada uma separadamente. As URLs SHALL vir de `src/config.py`; nenhum endereço pode estar chumbado no comando.
@@ -66,7 +65,7 @@ O diagnóstico SHALL reaproveitar uma amostra já presente em `data/raw/_amostra
 
 O diagnóstico SHALL requisitar a série da Selic no Ipeadata e reportar a contagem de registros, os campos disponíveis no primeiro registro, o primeiro e o último registro da série. Os registros vêm dentro da chave `value` da resposta OData.
 
-A saída SHALL declarar explicitamente que `BM12_TJOVER12` está em **% ao mês**, para que a unidade não seja confundida com % ao ano em nenhuma etapa seguinte.
+A saída SHALL declarar explicitamente a unidade da série configurada, lida de `SELIC_UNIDADE` em `src/config.py` (hoje **% ao ano**, a meta do Copom), para que a unidade não seja confundida em nenhuma etapa seguinte. A unidade SHALL NOT ser escrita fixa no script.
 
 #### Scenario: Série recebida
 
@@ -79,6 +78,11 @@ A saída SHALL declarar explicitamente que `BM12_TJOVER12` está em **% ao mês*
 - **WHEN** a API responde com sucesso mas a chave `value` vem vazia
 - **THEN** a saída reporta que a série veio vazia e precisa ser investigada
 - **AND** o processo termina sem exceção
+
+#### Scenario: Unidade vinda da configuração
+
+- **WHEN** o diagnóstico da Selic é executado
+- **THEN** a saída mostra a série e a unidade definidas em `src/config.py`
 
 ### Requirement: Registro das respostas nos documentos do projeto
 

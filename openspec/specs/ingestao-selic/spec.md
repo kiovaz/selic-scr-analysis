@@ -7,7 +7,7 @@ Ingere a série histórica da taxa Selic a partir da API REST do Ipeadata, produ
 
 ### Requirement: Requisição à API com resiliência
 
-O loader SHALL requisitar a série `BM12_TJOVER12` no endpoint OData v4 do Ipeadata, usando a URL definida em `src/config.py` (`SELIC_URL`). A requisição SHALL usar timeout configurável e, em caso de falha de rede ou erro HTTP, SHALL fazer retry com backoff exponencial até um número máximo de tentativas.
+O loader SHALL requisitar a série definida em `SELIC_SERIE` de `src/config.py` — hoje `BM366_TJOVER366`, a **Selic meta fixada pelo Copom, diária, em % ao ano** (seção 2.2 de `docs/architecture.md`) — no endpoint OData v4 do Ipeadata, usando a URL definida em `src/config.py` (`SELIC_URL`). A requisição SHALL usar timeout configurável e, em caso de falha de rede ou erro HTTP, SHALL fazer retry com backoff exponencial até um número máximo de tentativas.
 
 Cada tentativa e seu resultado (sucesso ou erro) SHALL ser registrados em log.
 
@@ -36,6 +36,12 @@ Cada tentativa e seu resultado (sucesso ou erro) SHALL ser registrados em log.
 - **THEN** o loader registra que a série veio vazia
 - **AND** nenhum arquivo Bronze é escrito para esta execução
 - **AND** o job é encerrado sem exceção
+
+#### Scenario: Série diária
+
+- **WHEN** a série configurada é diária
+- **THEN** cada dia devolvido pela API vira uma linha da `bronze_selic`, como veio
+- **AND** o watermark da carga incremental passa a ser um dia (`AAAA-MM-DD`)
 
 ### Requirement: Extração e parsing dos registros
 
