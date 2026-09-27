@@ -282,3 +282,19 @@ no relatório da Silver.
 | `motivo` | string | `uf_invalida`, `data_fora_do_intervalo`, `valor_negativo`, `tipagem_invalida`, `duplicata_na_chave` |
 | `payload` | json | registro original preservado |
 | `quarantined_at` | timestamp | momento da rejeição |
+
+---
+
+## Limitações conhecidas
+
+1. O SCR.data traz o **saldo** da carteira no fim do mês, não os financiamentos novos. A variação mensal é uma aproximação de fluxo.
+2. O estado vem do CEP de residência (PF) ou da sede (PJ), não de onde o dinheiro é usado.
+3. Valores em reais nominais, sem correção pela inflação.
+4. A Selic é nacional — não existe taxa por estado.
+5. **Associação não é causa:** renda, emprego, safra e política de crédito dos bancos não são controlados.
+6. A **quantidade de operações é subestimada** (o BCB esconde 28% das linhas); a análise e o modelo usam o **volume**.
+7. **A Selic não antecipa o trimestre seguinte:** o modelo com e sem Selic tem desempenho equivalente.
+8. As probabilidades mais extremas do modelo aparecem em **mercados pequenos**; por isso a recomendação prioriza, dentro da lista, as de maior saldo.
+9. A avaliação final cobre 12 meses (fev/2025–jan/2026), um só regime de juros altos.
+
+Lista completa e o que seria preciso para afirmar mais: [`architecture.md`](architecture.md), seção 11.

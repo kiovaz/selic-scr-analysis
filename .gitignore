@@ -20,7 +20,7 @@ venv/
 # Notebooks
 .ipynb_checkpoints/
 
-# Configuração pessoal das ferramentas de IA
+# Configuração pessoal de ferramentas locais
 .claude/settings.local.json
 
 # Sistema operacional / editor

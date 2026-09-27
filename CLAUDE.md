@@ -21,7 +21,6 @@ python scripts/run_pipeline.py     # pipeline completo: Bronze → Silver → Go
 python scripts/run_pipeline.py --anos 2024   # teste rápido com um só ano do SCR
 python scripts/conferir_bronze.py  # contagens da Bronze e duplicatas na chave (demonstração de idempotência)
 
-docker compose run --rm pipeline   # opcional (ver ressalva 7.3 do architecture.md)
 ```
 
 CI (`.github/workflows/ci.yml`) roda `pytest -v` em todo push e PR para `main` e `develop`, com Python 3.11. Os testes isolam `data/` em pasta temporária e bloqueiam a rede (`tests/conftest.py`).
@@ -82,7 +81,7 @@ Para ML (Sprint 5): `t0` é jun/2026, o último mês do recorte (o SCR publica c
 
 - `main` estável; branch de feature por membro; merge via Pull Request.
 - Commits atômicos no formato `tipo: descrição breve` (`feat:`, `fix:`, `docs:`, `test:`); o histórico atual usa emoji antes do tipo (`✨ feat:`, `📄 docs:`, `🔧 chore:`).
-- **Sem linha de atribuição** em commits e PRs (nada de `Co-Authored-By` nem "Generated with"). O uso de IA é declarado só no README (Requisito 9).
+- **Sem linha de atribuição** em commits e PRs (nada de `Co-Authored-By` nem "Generated with").
 - Validações de qualidade são funções simples em `src/validation/` cobertas por pytest — Great Expectations/Pandera foram deliberadamente descartados (seção 7.2).
 
 ## Regras deste projeto
