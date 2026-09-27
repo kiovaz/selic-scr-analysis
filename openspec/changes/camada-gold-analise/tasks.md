@@ -38,4 +38,5 @@
   - **O que os gráficos mostram, como associação:** (1) no Brasil, o saldo imobiliário tende a crescer mais nos meses seguintes a altas da Selic — associação positiva, compatível com o Copom subir os juros quando crédito e economia estão aquecidos, não com um efeito dos juros sobre o crédito; (2) no mapa de calor o padrão imobiliário se repete em quase todos os estados, e as associações negativas se concentram em infraestrutura e importação, em poucos estados.
 - [x] 6.2 Rodar de novo e confirmar que a Gold e as duas tabelas da análise são idênticas às da 6.1. Verificar e anotar.
   - **Resultado:** pipeline rodado de novo (190 s); `gold_credito_selic`, `analise_brasil_modalidade` e `analise_uf_modalidade` idênticas às da execução anterior (conferido junto com a tarefa 3.2 da `troca-serie-selic`).
-- [ ] 6.3 `pytest -v`, CI verde no PR para o `develop`, commits atômicos em pt-BR **sem linha de atribuição**. As figuras de `docs/figuras/` entram no commit.
+- [x] 6.3 `pytest -v`, CI verde no PR para o `develop`, commits atômicos em pt-BR **sem linha de atribuição**. As figuras de `docs/figuras/` entram no commit.
+  - **Resultado:** 75 testes passando; PR #14 com CI verde em Python 3.11 (a primeira rodada falhou por `scipy==1.18.1`, que exige Python 3.12+; corrigido para 1.17.1). Commits sem linha de atribuição.

@@ -18,4 +18,5 @@
   - **Efeito na análise:** com a série antiga, 0 de 56 associações eram significativas (a variação media o calendário). Com a meta, **9 de 56** no nível Brasil — mais forte: imobiliário, k = 4, Spearman **+0,42** (p ajustado < 0,001); rural, k = 5, +0,26 (p ajustado 0,034) — e **56 de 214** combinações UF × modalidade (45 positivas, 11 negativas).
 - [x] 3.2 Rodar o pipeline de novo e confirmar que a Selic não grava nada (watermark diário) e que a Silver, a Gold e a análise saem idênticas. Anotar.
   - **Resultado:** segunda execução em 190 s; Selic "nada novo (watermark 2026-09-25)", 0 linhas gravadas; `silver_scr`, `silver_selic`, `gold_credito_selic`, `analise_brasil_modalidade` e `analise_uf_modalidade` **idênticas** às da 3.1 (ignorando `_load_id`).
-- [ ] 3.3 `pytest -v`, CI verde no PR para o `develop`, commits atômicos em pt-BR **sem linha de atribuição**.
+- [x] 3.3 `pytest -v`, CI verde no PR para o `develop`, commits atômicos em pt-BR **sem linha de atribuição**.
+  - **Resultado:** 75 testes passando; PR #14 com CI verde em Python 3.11 (a primeira rodada falhou por `scipy==1.18.1`, que exige Python 3.12+; corrigido para 1.17.1). Commits sem linha de atribuição.
