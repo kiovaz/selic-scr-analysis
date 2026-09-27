@@ -35,7 +35,7 @@ O projeto usa OpenSpec (`openspec/`, skills `openspec-*` / `opsx:*`) para propor
 
 ## Arquitetura
 
-Pipeline medallion sobre filesystem local (sem cloud, sem DVC — decisão consciente; `data/` está no `.gitignore`).
+Pipeline medallion sobre filesystem local (sem DVC — decisão consciente; `data/` está no `.gitignore`). A única parte na nuvem é a publicação opcional das tabelas finais no Neon, lida pelo site em `web/` (decisões 12 e 16).
 
 ```
 SCR.data (BCB, ZIP→CSV ';')  ─┐
@@ -43,7 +43,7 @@ SCR.data (BCB, ZIP→CSV ';')  ─┐
 Selic (Ipeadata, API OData)  ─┘        (cru)            (limpo, tipado)         (pronto p/ pergunta)
 ```
 
-As **Sprints 1 a 6 estão concluídas** (plano na seção 8 do architecture.md; decisões na seção 13). Módulos: `src/ingestion/` (loaders SCR e Selic, tabelas de controle, metadados), `src/validation/` (checagens e quarentena), `src/transformation/` (Silver e Gold), `src/analise/` (correlações e gráficos), `src/ml/` (base de ML, treino e decisão). Pendente: publicação da Gold na nuvem (NeonDB + Next.js, decisão 12).
+As **Sprints 1 a 6 estão concluídas** (plano na seção 8 do architecture.md; decisões na seção 13). Módulos: `src/ingestion/` (loaders SCR e Selic, tabelas de controle, metadados), `src/validation/` (checagens e quarentena), `src/transformation/` (Silver e Gold), `src/analise/` (correlações e gráficos), `src/ml/` (base de ML, treino e decisão), `src/publicacao/` (envio opcional ao Neon). O site fica em `web/` (Next.js, só leitura). A string de conexão é `DATABASE_URL` no `.env` da raiz — nunca versionar, nunca escrever o valor em código; os testes não leem o `.env`.
 
 ### `src/config.py` é o único lugar com caminho, URL e constante
 
