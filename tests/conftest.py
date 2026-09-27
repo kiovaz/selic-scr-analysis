@@ -37,6 +37,12 @@ def dados_isolados(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "ARQUIVO_SILVER_SCR", processed / "silver_scr.parquet")
     monkeypatch.setattr(config, "ARQUIVO_SILVER_SELIC", processed / "silver_selic.parquet")
     monkeypatch.setattr(config, "ARQUIVO_RELATORIO_SILVER", processed / "_relatorio_silver.json")
+    final = tmp_path / "final"
+    monkeypatch.setattr(config, "ARQUIVO_GOLD", final / "gold_credito_selic.parquet")
+    monkeypatch.setattr(config, "ARQUIVO_ANALISE_BRASIL", final / "analise_brasil_modalidade.parquet")
+    monkeypatch.setattr(config, "ARQUIVO_ANALISE_UF", final / "analise_uf_modalidade.parquet")
+    monkeypatch.setattr(config, "ARQUIVO_RELATORIO_GOLD", final / "_relatorio_gold.json")
+    monkeypatch.setattr(config, "DIR_FIGURAS", tmp_path / "figuras")   # não sobrescreve as figuras reais
     return tmp_path
 
 

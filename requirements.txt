@@ -10,6 +10,9 @@ seaborn==0.13.2
 
 # Machine learning (Sprint 5)
 scikit-learn==1.9.0
+# Correlações e valores-p da análise (Sprint 4). Já vinha instalado como
+# dependência do scikit-learn; agora está declarado e fixado.
+scipy==1.18.1
 
 # Testes (Sprint 3)
 pytest==9.1.1

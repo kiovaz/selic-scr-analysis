@@ -156,7 +156,7 @@ def baixar_amostra_selic():
     separador("FONTE 2 — Selic (Ipeadata)")
 
     print(f"URL: {config.SELIC_URL}")
-    print(f"Série: {config.SELIC_SERIE} — a taxa vem em % AO MÊS, não ao ano.")
+    print(f"Série: {config.SELIC_SERIE} — unidade: {config.SELIC_UNIDADE}.")
     print("Requisitando...")
 
     try:
