@@ -1,7 +1,7 @@
 # validacao-bronze Specification
 
 ## Purpose
-Fornece checagens de qualidade padronizadas e um sistema de quarentena que os loaders da Bronze usam para desviar registros inválidos sem derrubar o job, preservando o registro original e o motivo da rejeição.
+Fornece checagens de qualidade padronizadas e um sistema de quarentena que a construção da Silver usa para desviar registros inválidos sem derrubar o job, preservando o registro original e o motivo da rejeição. Os loaders da Bronze não aplicam essas checagens (seção 3.3 de `docs/architecture.md`).
 
 ## Requirements
 

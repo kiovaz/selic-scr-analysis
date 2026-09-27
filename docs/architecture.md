@@ -81,6 +81,11 @@ Em nenhum documento, apresentação ou código do projeto a palavra "segmento" d
 - **`ANO_FIM` estava em 2025 e foi corrigido para 2026.** Conferido por requisição ao próprio endpoint: os ZIPs de 2024, 2025 e 2026 respondem 200; o de 2027 dá 404. O arquivo de 2026 é parcial (100,8 MiB contra 167,9 MiB de um ano cheio), coerente com a defasagem de publicação de ~30 dias.
 - Evidência completa em `notebooks/01_exploracao_amostras.ipynb`, com as saídas gravadas.
 
+**Conferido na primeira execução real da Bronze (2026-09-26, ZIP de 2024 baixado no mesmo dia):**
+
+- A `bronze_scr` de 2024 ficou com **3.726.512 linhas**, e cada um dos 12 CSVs bate linha a linha com a Bronze — nenhum registro foi descartado. A diferença de 3 linhas para a contagem da Sprint 1 (3.726.515) está toda em `scrdata_202408.csv` (310.266 → 310.263): dentro do ZIP, esse arquivo tem data de **2026-09-15**, posterior à coleta de 2026-09-03, enquanto os demais meses são de 2026-03-25. Ou seja, **o BCB republica meses já publicados**. Consequência para o projeto: uma nova ingestão do mesmo ano pode trazer dados diferentes do mesmo mês, o que a Sprint 3 (idempotência) e a Silver (deduplicação na chave) precisam considerar.
+- Tempo da ingestão de um ano completo: ~3 min 45 s (download de ~170 MB em ~50 s + leitura, hash e gravação).
+
 **Filtro aplicado:** o SCR.data tem 13 modalidades de crédito; usamos as 8 que começam com "Financiamentos" (`modalidade LIKE 'Financiamentos%'`): financiamentos, à exportação, à importação, com interveniência, rurais e agroindustriais, imobiliários, de títulos e valores mobiliários, e de infraestrutura e desenvolvimento.
 
 ### 2.2. Base Y — Selic (Ipeadata / Ipea)
@@ -155,6 +160,13 @@ Rodar a ingestão duas vezes seguidas não pode alterar a contagem final de linh
 
 Registro com estado inválido, data fora do intervalo, valor negativo ou tipo errado vai para uma tabela separada, com o motivo e o registro original preservados. O job nunca quebra por causa de dado sujo.
 
+**Onde a quarentena acontece: na Silver, não na ingestão.** *(Decisão do grupo registrada em 2026-09-26, na mudança `correcoes-ingestao-bronze`.)* A Sprint 2 tinha colocado a validação e a quarentena dentro dos loaders da Bronze. Isso contrariava a seção 4.1 — a Bronze não descarta registro — e tinha um risco concreto: se uma regra de validação tivesse bug (por exemplo, rejeitar um mês inteiro por engano), o registro sumia da Bronze, e reprocessar depois de corrigir a regra não o traria de volta, porque o reprocessamento sempre parte da Bronze.
+
+Por isso:
+
+- **Bronze:** grava todo registro que conseguiu ler, sujo ou não. Só rejeita o que é **ilegível** — CSV sem as colunas esperadas, resposta da API que não é JSON OData — e registra o motivo em log (não na quarentena, porque não há registro para preservar).
+- **Silver:** aplica as checagens de `src/validation/quality_checks.py` e envia o registro inválido para `data/raw/_quarentena/` com o motivo padronizado. O registro original continua na Bronze.
+
 Motivos padronizados: `uf_invalida`, `data_fora_do_intervalo`, `valor_negativo`, `tipagem_invalida`, `duplicata_na_chave`.
 
 ---
@@ -170,6 +182,8 @@ Motivos padronizados: `uf_invalida`, `data_fora_do_intervalo`, `valor_negativo`,
 | **Gold** | Tabelas orientadas à pergunta de decisão: agregações e indicadores | Qualquer limpeza — se precisou limpar aqui, a Silver falhou |
 
 Regra geral: reprocessamento sempre parte da Bronze. Se Silver ou Gold quebram, são reconstruídas — a fonte não é consultada de novo.
+
+**O que "dado como veio" significa na prática** *(decisão registrada em 2026-09-26, mudança `correcoes-ingestao-bronze`)*: a Bronze guarda **todas** as colunas do CSV do SCR (24) e **todos** os campos da API da Selic, **como texto**, sem converter tipo nem separador decimal e sem recorte de período. Das 24 colunas do SCR, só as 5 de `SCR_COLUNAS_USADAS` viram Silver — esse corte, a tipagem e o recorte a partir de jul/2016 são feitos na Silver. Motivo: se a Silver um dia precisar de mais uma coluna (por exemplo `porte`), basta reprocessar a partir do disco, sem baixar de novo ~2 GB do BCB.
 
 ### 4.2. Tabelas do projeto
 
@@ -348,10 +362,12 @@ Desenvolvimento incremental. Cada sprint tem uma **definição de pronto** objet
 - `src/ingestion/scr_file_loader.py`: download do ZIP, descompactação, leitura do CSV com encoding, separador e tipagem explícitos
 - `src/ingestion/selic_api_loader.py`: requisição com timeout, tratamento de erro e retry com backoff
 - Metadados técnicos da seção 3.1 em toda linha
-- Quarentena funcionando com os motivos padronizados
+- Módulo de quarentena (`src/validation/quality_checks.py`) com os motivos padronizados, pronto para a Silver usar
 - Escrita em `data/raw/`, particionada por data
 
-**Pronto quando:** os dois loaders rodam do zero e produzem `bronze_scr` e `bronze_selic` em disco, e um registro sujo injetado de propósito cai na quarentena sem derrubar o job.
+**Pronto quando:** os dois loaders rodam do zero e produzem `bronze_scr` e `bronze_selic` em disco; um registro sujo injetado de propósito entra intacto na Bronze sem derrubar o job; e um arquivo ilegível é rejeitado com log.
+
+> *Revisado em 2026-09-26 (mudança `correcoes-ingestao-bronze`).* A versão original dizia que o registro sujo "cai na quarentena" já na ingestão. O grupo decidiu que a quarentena acontece na Silver (seção 3.3). A sprint não foi desfeita: o módulo de quarentena continua existindo; só mudou quem o chama.
 
 ### Sprint 3 — Idempotência, incremental e CI
 
@@ -365,6 +381,8 @@ Desenvolvimento incremental. Cada sprint tem uma **definição de pronto** objet
 ### Sprint 4 — Silver e Gold
 
 - `silver_scr` e `silver_selic` com tipagem, deduplicação e validações
+- Seleção das 5 colunas de `SCR_COLUNAS_USADAS` e recorte a partir de jul/2016 (a Bronze guarda tudo — seção 4.1)
+- Quarentena por regra de negócio, com os motivos padronizados (seção 3.3), incluindo o descarte do mês corrente incompleto da Selic
 - Join e contagem de órfãos dos dois lados, registrada
 - `gold_credito_selic` com as variações e os lags da seção 5.3
 - Análise estatística conforme a seção 5.4

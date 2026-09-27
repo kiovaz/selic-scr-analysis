@@ -140,7 +140,7 @@ A imagem instala apenas o `requirements.txt`; o Jupyter fica de fora dela de pro
 ## Sprints
 
 - [ ] **Sprint 1 — Fundação.** Perguntas fechadas, repositório montado, amostras baixadas e conferidas.
-- [ ] **Sprint 2 — Ingestão Bronze.** Loaders de arquivo e API, metadados técnicos, quarentena.
+- [ ] **Sprint 2 — Ingestão Bronze.** Loaders de arquivo e API, metadados técnicos, módulo de quarentena (usado pela Silver).
 - [ ] **Sprint 3 — Idempotência e CI.** Hash, carga incremental, testes, GitHub Actions.
 - [ ] **Sprint 4 — Silver e Gold.** Tipagem, join, variações, lags, análise estatística.
 - [ ] **Sprint 5 — ML.** Definir o problema, construir a base, baseline, modelo, anti-vazamento.
