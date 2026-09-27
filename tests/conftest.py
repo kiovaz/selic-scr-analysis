@@ -33,6 +33,10 @@ def dados_isolados(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "DIR_CONTROLE", raw / "_controle")
     monkeypatch.setattr(config, "ARQUIVO_CONTROLE_SCR", raw / "_controle" / "controle_scr.json")
     monkeypatch.setattr(config, "ARQUIVO_CONTROLE_SELIC", raw / "_controle" / "controle_selic.json")
+    processed = tmp_path / "processed"
+    monkeypatch.setattr(config, "ARQUIVO_SILVER_SCR", processed / "silver_scr.parquet")
+    monkeypatch.setattr(config, "ARQUIVO_SILVER_SELIC", processed / "silver_selic.parquet")
+    monkeypatch.setattr(config, "ARQUIVO_RELATORIO_SILVER", processed / "_relatorio_silver.json")
     return tmp_path
 
 

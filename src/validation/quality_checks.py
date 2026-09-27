@@ -107,3 +107,106 @@ def enviar_para_quarentena(registro: dict, motivo: str, load_id: str, source_sys
         df.to_parquet(filepath, index=False)
     except Exception as e:
         logger.error(f"Erro ao enviar para quarentena: {e}")
+
+
+# ---------------------------------------------------------------------
+# Checagens aplicadas a uma COLUNA inteira (usadas pela Silver)
+#
+# Seguem exatamente as regras das funções checar_* acima, mas avaliam
+# milhões de linhas de uma vez (validar linha a linha seria inviável na
+# Silver). Cada uma devolve uma Series de True/False: True = a linha falhou.
+# ---------------------------------------------------------------------
+
+def mascara_uf_invalida(serie: pd.Series, config: Any) -> pd.Series:
+    """True onde a UF não está em config.UFS_VALIDAS (mesma regra de checar_uf)."""
+    return ~serie.isin(config.UFS_VALIDAS)
+
+
+def converter_numero(serie: pd.Series, decimal: str = ".") -> pd.Series:
+    """
+    Converte texto em número. `decimal` é o separador decimal da fonte
+    (o SCR usa vírgula: "1234,56"). O que não for número vira NaN.
+    """
+    texto = serie.astype("string")
+    if decimal != ".":
+        texto = texto.str.replace(decimal, ".", regex=False)
+    return pd.to_numeric(texto, errors="coerce").astype("float64")
+
+
+def converter_data(serie: pd.Series) -> pd.Series:
+    """Converte texto AAAA-MM-DD (ou AAAA-MM) em data. O que não for data vira NaT."""
+    texto = serie.astype("string")
+    datas = pd.to_datetime(texto, format="%Y-%m-%d", errors="coerce")
+    so_mes = pd.to_datetime(texto, format="%Y-%m", errors="coerce")
+    return datas.fillna(so_mes)
+
+
+def mascara_tipagem_invalida(serie: pd.Series, tipo: str, decimal: str = ".") -> pd.Series:
+    """
+    True onde o valor não pode ser convertido para `tipo` ("float", "int" ou
+    "data") — mesma regra de checar_tipagem. Para "int", só texto inteiro
+    vale ("10.0" é inválido, como em int("10.0")).
+    """
+    if tipo == "float":
+        return converter_numero(serie, decimal).isna()
+    if tipo == "int":
+        return ~serie.astype("string").str.fullmatch(r"\s*[+-]?\d+\s*").fillna(False).astype(bool)
+    if tipo == "data":
+        return converter_data(serie).isna()
+    raise ValueError(f"tipo desconhecido: {tipo}")
+
+
+def mascara_valor_negativo(serie_numerica: pd.Series, coluna: str) -> pd.Series:
+    """
+    True onde o número é negativo — mesma regra de checar_valor_nao_negativo.
+    Exceção: -1 em numero_de_operacoes é a máscara do BCB (quantidade não
+    divulgada), não um valor negativo. NaN (não é número) não conta aqui: é
+    papel da checagem de tipagem.
+    """
+    negativo = serie_numerica < 0
+    if coluna == "numero_de_operacoes":
+        negativo &= serie_numerica != -1
+    return negativo.fillna(False).astype(bool)
+
+
+def mascara_data_futura(serie_datas: pd.Series) -> pd.Series:
+    """True onde a data é posterior a hoje — impossível para um dado já publicado."""
+    return (serie_datas > pd.Timestamp(datetime.date.today())).fillna(False).astype(bool)
+
+
+def gravar_quarentena_da_tabela(rejeitados: pd.DataFrame, motivos: pd.Series, tabela: str, load_id: str,
+                                source_system: str, dir_quarentena) -> None:
+    """
+    Grava a quarentena de UMA tabela da Silver num único arquivo
+    "<dir_quarentena>/<tabela>.parquet", SUBSTITUINDO o da execução anterior.
+
+    A Silver é reconstruída inteira a cada execução (seção 4.1), então a sua
+    quarentena também é: reprocessar não duplica registros rejeitados.
+    O formato de cada linha é o mesmo de enviar_para_quarentena. Se
+    `rejeitados` tiver a coluna _source_object, ela vai para a coluna de
+    mesmo nome; o registro original inteiro vai para `payload` (JSON).
+
+    Nunca levanta exceção: erro de gravação é registrado em log e o job segue.
+    """
+    try:
+        agora = datetime.datetime.now()
+        origem = rejeitados["_source_object"] if "_source_object" in rejeitados else pd.Series("", index=rejeitados.index)
+        registros = rejeitados.astype(object).where(rejeitados.notna(), None).to_dict("records")
+        df = pd.DataFrame({
+            "_load_id": load_id,
+            "_source_system": source_system,
+            "_source_object": list(origem),
+            "motivo": list(motivos),
+            "payload": [json.dumps(r, ensure_ascii=False, default=str) for r in registros],
+            "quarantined_at": agora,
+        })
+        pasta = Path(dir_quarentena)
+        pasta.mkdir(parents=True, exist_ok=True)
+        destino = pasta / f"{tabela}.parquet"
+        temporario = pasta / f"{tabela}.parquet.tmp"
+        df.to_parquet(temporario, index=False)
+        temporario.replace(destino)
+        if len(df):
+            logger.warning(f"Quarentena de {tabela}: {len(df)} registros ({df['motivo'].value_counts().to_dict()}).")
+    except Exception as e:
+        logger.error(f"Erro ao gravar a quarentena de {tabela}: {e}")

@@ -33,12 +33,22 @@ DIR_CONTROLE = DIR_BRONZE / "_controle"
 ARQUIVO_CONTROLE_SCR = DIR_CONTROLE / "controle_scr.json"      # versão de cada ZIP e de cada CSV
 ARQUIVO_CONTROLE_SELIC = DIR_CONTROLE / "controle_selic.json"  # watermark da Selic
 
+# Saídas da Silver (seção 4.2). São pequenas (até ~26 mil e 120 linhas), por
+# isso um Parquet único por tabela. O relatório registra quantas linhas
+# saíram em cada etapa (filtros de escopo e quarentena).
+ARQUIVO_SILVER_SCR = DIR_SILVER / "silver_scr.parquet"
+ARQUIVO_SILVER_SELIC = DIR_SILVER / "silver_selic.parquet"
+ARQUIVO_RELATORIO_SILVER = DIR_SILVER / "_relatorio_silver.json"
+
 # ---------------------------------------------------------------------
 # Fonte 1 — SCR.data (Banco Central)
 # ---------------------------------------------------------------------
 SCR_URL_TEMPLATE = "https://www.bcb.gov.br/pda/desig/scrdata_{ano}.zip"
 SCR_PORTAL = "https://dadosabertos.bcb.gov.br/dataset/scr_data"
 SCR_SEPARADOR = ";"
+# Separador decimal dos números do SCR ("1234,56"), confirmado na Sprint 1.
+# Usado pela Silver para converter carteira_ativa em número.
+SCR_DECIMAL = ","
 
 # Nome do arquivo ZIP em disco: o mesmo que o BCB publica na URL.
 # O loader e o script de amostras usam este nome, então um ZIP baixado por
