@@ -99,3 +99,11 @@ def test_silver_sem_duplicata_na_chave():
     gold = construir_gold()
     assert len(gold) == 2
     assert gold.duplicated(["ano_mes", "uf", "modalidade"]).sum() == 0
+
+
+def test_gold_ml_dataset_sem_duplicata_na_chave():
+    """Chave da gold_ml_dataset (seção 4.2): (uf, modalidade, origem)."""
+    from tests.test_ml import gold_sintetica
+    from src.ml.dataset import montar_base
+    base, _ = montar_base(gold_sintetica())
+    assert base.duplicated(["uf", "modalidade", "origem"]).sum() == 0
