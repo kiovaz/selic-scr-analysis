@@ -90,6 +90,32 @@ ARQUIVO_SENSIBILIDADE = DIR_GOLD / "sensibilidade_limiar.parquet"
 ARQUIVO_FRASE = DIR_GOLD / "frase_fechamento.json"
 
 # ---------------------------------------------------------------------
+# Publicação no Neon (decisões 12 e 16 do architecture.md)
+# ---------------------------------------------------------------------
+# A string de conexão é SEGREDO: fica no arquivo .env da raiz (fora do Git)
+# ou numa variável de ambiente. Aqui mora só o NOME da variável, nunca o valor.
+# Sem ela, o pipeline pula a publicação e termina normalmente.
+VARIAVEL_CONEXAO = "DATABASE_URL"
+ARQUIVO_ENV = RAIZ / ".env"
+
+
+def tabelas_publicadas():
+    """
+    Nome da tabela no banco -> arquivo de data/final/ que vira essa tabela.
+    É uma função (e não uma constante) para usar os caminhos atuais do
+    config — os testes trocam esses caminhos por pastas temporárias.
+    """
+    return {
+        "gold_credito_selic": ARQUIVO_GOLD,
+        "recomendacao_trimestre": ARQUIVO_RECOMENDACAO,
+        "ml_previsao_producao": ARQUIVO_ML_PREVISAO_PRODUCAO,   # probabilidade das 174 combinações
+        "sensibilidade_limiar": ARQUIVO_SENSIBILIDADE,
+        "analise_brasil_modalidade": ARQUIVO_ANALISE_BRASIL,
+        "analise_uf_modalidade": ARQUIVO_ANALISE_UF,
+        "frase_fechamento": ARQUIVO_FRASE,
+    }
+
+# ---------------------------------------------------------------------
 # Fonte 1 — SCR.data (Banco Central)
 # ---------------------------------------------------------------------
 SCR_URL_TEMPLATE = "https://www.bcb.gov.br/pda/desig/scrdata_{ano}.zip"

@@ -8,6 +8,8 @@ Proteções que valem para TODOS os testes (o pytest carrega este arquivo sozinh
 2. Sem rede: requests.get e requests.head levantam erro se forem chamados
    sem simulação. Quem precisa de resposta da fonte usa unittest.mock.patch
    no próprio teste. Assim o CI nunca depende do BCB ou do Ipeadata.
+3. Sem banco: o .env real não é lido e DATABASE_URL é apagada do ambiente,
+   então nenhum teste publica no Neon.
 """
 
 import sys
@@ -50,6 +52,9 @@ def dados_isolados(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "ARQUIVO_RECOMENDACAO", final / "recomendacao_trimestre.parquet")
     monkeypatch.setattr(config, "ARQUIVO_SENSIBILIDADE", final / "sensibilidade_limiar.parquet")
     monkeypatch.setattr(config, "ARQUIVO_FRASE", final / "frase_fechamento.json")
+    # Nenhum teste lê o .env real nem publica no Neon de verdade.
+    monkeypatch.setattr(config, "ARQUIVO_ENV", tmp_path / ".env")
+    monkeypatch.delenv(config.VARIAVEL_CONEXAO, raising=False)
     return tmp_path
 
 
