@@ -27,6 +27,11 @@ DIR_AMOSTRAS = DIR_BRONZE / "_amostras"
 # ZIPs anuais do SCR baixados pelo loader da Bronze. Ficam em disco para não
 # baixar ~170 MB de novo a cada execução.
 DIR_DOWNLOADS_SCR = DIR_BRONZE / "_downloads"
+# Tabelas de controle da ingestão: registram o que já foi gravado na Bronze,
+# para que rodar o pipeline de novo não duplique nada (seção 3.2).
+DIR_CONTROLE = DIR_BRONZE / "_controle"
+ARQUIVO_CONTROLE_SCR = DIR_CONTROLE / "controle_scr.json"      # versão de cada ZIP e de cada CSV
+ARQUIVO_CONTROLE_SELIC = DIR_CONTROLE / "controle_selic.json"  # watermark da Selic
 
 # ---------------------------------------------------------------------
 # Fonte 1 — SCR.data (Banco Central)
