@@ -204,6 +204,14 @@ as defasagens vêm da série nacional, pelo calendário. Detalhes na seção 5.3
 | `spearman`, `pearson`, `p_valor` | decimal | vazios se a amostra for insuficiente |
 | `p_ajustado`, `significativo` | decimal / boolean | Benjamini-Hochberg entre as combinações calculadas |
 
+### Saídas da decisão (`data/final/`, Sprint 6)
+
+| Arquivo | Conteúdo |
+|---|---|
+| `recomendacao_trimestre.parquet` | `grupo` (`expandir` / `alerta`), `posicao`, `uf`, `modalidade`, `prob_ganha_forca`, `volume_rs` (saldo em jun/2026): as 20 combinações com maior e as 20 com menor probabilidade de ganhar força em set–nov/2026 |
+| `sensibilidade_limiar.parquet` | por regra (`nota mínima` 0,5–0,9; `maiores notas do mês` 10/20/40): recomendações por mês, precisão e recall do modelo, precisão da regra simples — calculado no teste |
+| `frase_fechamento.json` | todos os números citados na frase de fechamento (seção 1) e na seção 10 do `architecture.md` |
+
 ### `gold_ml_dataset` — `data/final/gold_ml_dataset.parquet`
 **Uma linha por:** combinação UF × modalidade (coorte de 174) × mês de **origem** (o mês em que a previsão seria feita).
 **Chave primária:** `(uf, modalidade, origem)`
