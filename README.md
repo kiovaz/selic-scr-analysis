@@ -92,6 +92,20 @@ docker compose run --rm pipeline
 
 A imagem instala apenas o `requirements.txt`; o Jupyter fica de fora dela de propósito.
 
+### 8. Como demonstrar a idempotência
+
+Rodar a ingestão de novo não pode mudar a contagem de linhas (seção 3.2 do `architecture.md`). Para mostrar isso:
+
+```bash
+python scripts/conferir_bronze.py   # 1. anota as contagens e as duplicatas na chave (tem que ser 0)
+python scripts/run_pipeline.py      # 2. roda a ingestão de novo
+python scripts/conferir_bronze.py   # 3. as contagens são as mesmas, ainda com 0 duplicatas
+```
+
+Na segunda execução, o pipeline consulta a versão publicada de cada ZIP do SCR (sem baixar), vê que nada mudou e não grava nada; na Selic, só entra um mês cujo valor tenha mudado. As tabelas de controle que tornam isso possível ficam em `data/raw/_controle/`.
+
+A primeira carga completa (todos os anos) leva cerca de 35 minutos. Deixe o notebook na tomada e com a tampa aberta: se ele suspender, a execução fica parada até ele voltar.
+
 ---
 
 ## Estrutura do repositório

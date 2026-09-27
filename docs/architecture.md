@@ -151,7 +151,10 @@ A Bronze continua guardando tudo o que as fontes entregam (inclusive meses fora 
 |---|---|---|
 | **Arquivo** | SCR.data | Baixa o ZIP, descompacta, lê o CSV tratando encoding, separador `;` e tipagem explícita |
 | **API REST** | Ipeadata (Selic) | Requisição com timeout, tratamento de erro e retry com backoff |
-| **Carga incremental** | Ipeadata (Selic) | Guarda a última data já ingerida numa tabela de controle (watermark) e busca só o que falta na execução seguinte |
+| **Carga incremental** | Ipeadata (Selic) | Guarda a última data já ingerida numa tabela de controle (watermark). A API do Ipeadata **ignora** `$filter`, `$top` e `$orderby` (conferido em 2026-09-27: devolve sempre a série inteira, ~60 KB), então a carga baixa a série e **grava só o que falta**: registros a partir do watermark cujo hash ainda não está na Bronze |
+| **Controle de versão** | SCR.data | Antes de baixar, lê o `ETag` do ZIP com uma requisição `HEAD` (sem baixar) e compara com a tabela de controle. Se o ZIP mudou, compara o CRC32 e a data de cada CSV no índice do ZIP e ingere só os CSVs novos ou alterados |
+
+As tabelas de controle ficam em `data/raw/_controle/` (`controle_scr.json` e `controle_selic.json`), fora do Git como todo o `data/`.
 
 ### 3.1. Metadados técnicos da Bronze
 
@@ -166,6 +169,16 @@ Obrigatórios em toda linha, sempre com prefixo `_`:
 Incluir o arquivo de origem no hash é intencional: garante que duas linhas de conteúdo idêntico vindas de arquivos diferentes sejam preservadas, e que só o reprocessamento do **mesmo arquivo** seja descartado. Sem isso, linhas legítimas duplicadas dentro da fonte sumiriam, o que violaria a regra de que a Bronze não descarta registro.
 
 Rodar a ingestão duas vezes seguidas não pode alterar a contagem final de linhas. Isso será demonstrado ao vivo na defesa e coberto por teste automatizado (`test_idempotencia.py`).
+
+**Versões republicadas** *(Sprint 3, 2026-09-27)*. O BCB republica meses já publicados (ver 2.1: `scrdata_202408.csv` regravado em 2026-09-15). Por isso, no SCR, `_source_object` identifica a **versão** do arquivo: `scrdata_202408.csv@2026-09-15T02:38:32` (nome + data do arquivo dentro do ZIP). Consequências:
+
+- Uma versão republicada entra **completa** na Bronze — sem a versão no `_source_object`, as linhas que não mudaram teriam o mesmo hash da versão antiga e seriam tratadas como "já ingeridas", deixando o mês incompleto.
+- A versão anterior **continua guardada**: a Bronze é imutável (4.1).
+- **Regra da Silver:** para cada arquivo do SCR (`_source_object` antes do `@`), usar só a versão mais recente; para cada mês da Selic, usar só a leitura mais recente (`_ingestion_timestamp`) — o mês corrente da Selic muda de valor até fechar, e cada valor novo entra como uma linha nova.
+
+**Execução interrompida.** A tabela de controle marca cada versão como `em_andamento` antes de gravar e `completo` depois. Se a próxima execução encontrar uma versão `em_andamento`, grava só as linhas daquela versão cujo `_record_hash` ainda não está na Bronze. Se a tabela de controle for perdida, ela é reconstruída a partir dos `_source_object` presentes na Bronze.
+
+**Demonstração:** `python scripts/conferir_bronze.py` → `python scripts/run_pipeline.py` → `python scripts/conferir_bronze.py`: as contagens não mudam e a chave `(_source_object, _record_hash)` não tem duplicata.
 
 ### 3.3. Quarentena
 
