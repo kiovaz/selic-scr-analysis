@@ -3,8 +3,9 @@ Executa o pipeline inteiro, de ponta a ponta.
 
 Cada sprint acrescenta uma etapa aqui. Hoje: prepara as pastas e faz a
 ingestão Bronze do SCR e da Selic (Sprints 2 e 3) e constrói a Silver,
-a Gold e a análise (Sprint 4) o modelo de ML (Sprint 5) e a
-recomendação de decisão (Sprint 6).
+a Gold e a análise (Sprint 4), o modelo de ML (Sprint 5), a
+recomendação de decisão (Sprint 6) e, se houver DATABASE_URL no .env,
+publica as tabelas finais no Neon.
 
 Como rodar (da raiz do projeto):
     python scripts/run_pipeline.py              # todos os anos (~2 GB de download)
@@ -28,6 +29,7 @@ from src.transformation.gold_credito_selic import construir_gold
 from src.analise.correlacao import executar_analise
 from src.ml.treino import executar_ml
 from src.ml.decisao import executar_decisao
+from src.publicacao.neon import executar_publicacao
 
 
 def main():
@@ -146,6 +148,15 @@ def main():
     else:
         print("  ML e decisão pulados: dados insuficientes (a coorte exige os 120 meses do recorte).")
         print("  Rode o pipeline completo, sem --anos, para treinar o modelo e gerar a recomendação.")
+
+    # --- Publicação no Neon (opcional: só com DATABASE_URL no .env) ---
+    print("\n=== Publicação no Neon ===")
+    linhas = executar_publicacao()
+    if linhas is None:
+        print(f"  Pulada: sem {config.VARIAVEL_CONEXAO} no .env ou com saídas faltando (ver o aviso acima).")
+    else:
+        for tabela, n in linhas.items():
+            print(f"  {tabela}: {n} linhas")
 
 
 if __name__ == "__main__":

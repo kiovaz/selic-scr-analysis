@@ -121,6 +121,29 @@ python scripts/baixar_amostras.py
 
 Baixa uma amostra de 2024 do SCR e a série da Selic e imprime um diagnóstico (encoding, colunas, contagens). Não faz ingestão. Se a amostra já estiver em `data/raw/_amostras/`, reaproveita; `--forcar-download` baixa de novo.
 
+### 9. Publicar no Neon e no site (opcional)
+
+O pipeline pode enviar as tabelas finais para um banco Postgres no [Neon](https://neon.tech), e o site em `web/` (Next.js) mostra a recomendação, a Selic × crédito e a exploração por estado e modalidade.
+
+1. Crie um arquivo `.env` na raiz (ele está no `.gitignore` e nunca vai para o Git) com a string de conexão do Neon:
+
+   ```
+   DATABASE_URL=postgresql://USUARIO:SENHA@HOST/BANCO?sslmode=require
+   ```
+
+2. Rode o pipeline: no fim, a etapa **Publicação no Neon** recria as tabelas e mostra quantas linhas enviou. Sem o `.env`, ela é pulada e o resto funciona igual.
+
+3. Site local (precisa do [Node.js](https://nodejs.org) 20 ou mais novo):
+
+   ```bash
+   cd web
+   cp .env.exemplo .env.local   # e cole a mesma DATABASE_URL
+   npm install
+   npm run dev                  # abre em http://localhost:3000
+   ```
+
+4. Na Vercel: importe o repositório, defina **Root Directory = `web`** e cadastre `DATABASE_URL` em *Settings → Environment Variables*. O site lê o banco só no servidor e se atualiza sozinho a cada hora depois de uma nova publicação.
+
 ---
 
 ## Estrutura do repositório
@@ -146,8 +169,10 @@ Baixa uma amostra de 2024 do SCR e a série da Selic e imprime um diagnóstico (
 │   ├── validation/           # checagens de qualidade e quarentena
 │   ├── transformation/       # Silver (SCR, Selic) e Gold
 │   ├── analise/              # correlações e gráficos
-│   └── ml/                   # base de ML, treino/avaliação e decisão
+│   ├── ml/                   # base de ML, treino/avaliação e decisão
+│   └── publicacao/           # envio opcional das tabelas finais ao Neon
 ├── tests/                   # testes automatizados (pytest)
+├── web/                     # site Next.js (Vercel) que lê o Neon
 ├── requirements.txt         # dependências do pipeline, versões fixadas
 └── requirements-dev.txt     # + Jupyter
 ```
@@ -176,6 +201,7 @@ Baixa uma amostra de 2024 do SCR e a série da Selic e imprime um diagnóstico (
 - [x] **Sprint 4 — Silver, Gold e análise.** Quarentena, join, variações, lags, correlações por modalidade e por estado.
 - [x] **Sprint 5 — ML.** "O crédito vai ganhar força?", baseline, janela móvel, com e sem Selic, checklist anti-vazamento.
 - [x] **Sprint 6 — Decisão e entrega.** Decisor, limiar (20 maiores notas), frase de fechamento, README.
+- [x] **Publicação.** Tabelas finais no Neon e site em Next.js na Vercel.
 
 As decisões de cada sprint estão na seção 13 do `architecture.md` (Registro de decisões), e as propostas completas em `openspec/changes/archive/`.
 

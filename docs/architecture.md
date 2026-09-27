@@ -8,7 +8,7 @@
 
 **Escopo:** pipeline de dados completo (Bronze → Silver → Gold) + análise estatística de associação (seção 5.4) + modelo preditivo (seção 6) + recomendação de decisão para o trimestre (seção 10).
 
-**Onde os dados vivem:** filesystem local do projeto, pasta `data/` no `.gitignore`. Sem DVC. A publicação da Gold em um banco na nuvem com um front (NeonDB + Next.js na Vercel) foi aprovada e fica para uma sprint final (decisão 12 da seção 13) — até lá, tudo é local.
+**Onde os dados vivem:** filesystem local do projeto, pasta `data/` no `.gitignore`. Sem DVC. O pipeline roda inteiro localmente. Como etapa **opcional**, as tabelas finais (Gold, análise e decisão) são publicadas num banco Postgres no **Neon**, de onde um site em Next.js na **Vercel** (pasta `web/`) as mostra — decisões 12 e 16 da seção 13. Sem a string de conexão, a publicação é pulada e nada muda no resto.
 
 ### Nota sobre vocabulário
 
@@ -386,6 +386,8 @@ Stack enxuta de propósito. Cada ferramenta aqui ou é exigida pelo enunciado, o
 | **matplotlib / seaborn** | gráficos da análise e da entrega de decisão |
 | **venv + `requirements.txt` com versões fixadas** | exigido pelo enunciado |
 | **pytest** | é como se prova a unicidade da chave e a idempotência. Sem isso, o Requisito 2 vira promessa |
+| **Neon (Postgres) + `psycopg` + `python-dotenv`** | publicação opcional das tabelas finais (decisão 16). O `python-dotenv` lê a string de conexão do `.env`, que fica fora do Git |
+| **Next.js na Vercel** (`web/`) | site só de leitura com a recomendação, Selic × crédito e a exploração por estado e modalidade |
 | **GitHub Actions** | roda os testes a cada push. Custo de setup baixo (um YAML), e mostra na prática que o pipeline não quebrou |
 | **Git** | exigido |
 
@@ -396,7 +398,6 @@ Stack enxuta de propósito. Cada ferramenta aqui ou é exigida pelo enunciado, o
 | **DVC** | O enunciado exige apenas que os dados não vão para o Git. `data/` no `.gitignore` já resolve, de graça. DVC sem um remote configurado é overhead sem benefício |
 | **Great Expectations / Pandera** | As validações deste projeto (domínio de UF, tipos, faixas, duplicata) cabem em funções simples em `src/validation/`, cobertas por pytest. Uma biblioteca declarativa a mais é uma coisa a mais para todo mundo saber explicar |
 | **Black / Flake8 como obrigatórios** | Podem entrar no CI se o grupo quiser, mas não valem ponto e não são bloqueantes |
-| **`.env` / python-dotenv** | Nenhuma das duas fontes exige token ou autenticação. Caminhos de dados ficam num `config.py` simples |
 | **Docker + `docker-compose.yml`** | O enunciado já é satisfeito por `venv` + `requirements.txt` com versões fixadas + README, e o CI confirma o ambiente a cada push. Mantido na Sprint 1 como alternativa ao venv; removido na Sprint 6 (decisão 15) |
 
 ---
@@ -506,6 +507,8 @@ projeto-selic-credito/
 │   ├── analise/                  # Sprint 4: correlações e gráficos
 │   │   └── correlacao.py
 │   ├── ml/                       # Sprint 5
+│   ├── publicacao/               # envio opcional ao Neon (decisão 16)
+│   │   └── neon.py
 │   └── utils/
 │
 ├── tests/
@@ -517,6 +520,8 @@ projeto-selic-credito/
 ├── scripts/
 │   └── run_pipeline.py
 │
+├── web/                         # site Next.js (Vercel) — lê o Neon
+│
 └── docs/
     ├── architecture.md           # este arquivo
     ├── data_dictionary.md        # seção 5 consolidada
@@ -527,7 +532,7 @@ projeto-selic-credito/
 
 **Commits distribuídos entre os integrantes ao longo do tempo.** Um repositório com tudo no último dia e um autor só é tratado como trabalho de uma pessoa.
 
-**`.gitignore`** cobrindo `data/`, `*.csv`, `*.zip`, `*.parquet`, `__pycache__/`, `.venv/`.
+**`.gitignore`** cobrindo `data/`, `*.csv`, `*.zip`, `*.parquet`, `__pycache__/`, `.venv/`, `.env` (credenciais) e as pastas geradas do site (`web/node_modules`, `web/.next`).
 
 ---
 
@@ -596,10 +601,11 @@ Decisões tomadas pelo grupo ao longo das sprints. O detalhe fica na seção ind
 | 8 | 2026-09-27 | **Análise em dois níveis**: Brasil por modalidade e UF × modalidade (mapa de calor), Spearman, ajuste de Benjamini-Hochberg | Responder "por estado e por modalidade" sem escolher resultado a dedo | 5.4 |
 | 9 | 2026-09-27 | **Selic meta do Copom** (`BM366_TJOVER366`, % a.a., corte no último dia do mês) no lugar da acumulada no mês (`BM12_TJOVER12`, % a.m.) | A série antiga variava com os dias úteis (correlação 0,79) e chegou a subir quando o Copom cortou | 2.2 |
 | 11 | 2026-09-27 | **ML: prever se o crédito "ganha força"** (cresce mais no trimestre t+2→t+5 do que nos últimos 3 meses), nas 174 combinações completas, avaliado com e sem a Selic | Liga o modelo ao ciclo do crédito onde a Selic atua; a folga de 2 meses respeita o atraso de publicação; a versão "cresce mais que o Brasil" cancelava o efeito da Selic | 6.1 |
-| 12 | 2026-09-27 | **Publicação da Gold** num banco NeonDB com front Next.js na Vercel — **adiada para a sprint final**; a etapa de envio será opcional (só roda com a string de conexão configurada) | Mostrar os dados na entrega; o grupo tem experiência com a stack. Exige revisar a decisão "sem cloud" (seção 0) quando for implementada | a registrar na sprint final |
+| 12 | 2026-09-27 | **Publicação da Gold** num banco NeonDB com front Next.js na Vercel; a etapa de envio é opcional (só roda com a string de conexão configurada) — **implementada** (decisão 16) | Mostrar os dados na entrega; o grupo tem experiência com a stack. Revisou a decisão "sem cloud" (seção 0) | 0, 7.1, 9 |
 | 13 | 2026-09-27 | **Decisor:** diretoria de crédito de uma instituição financeira de **atuação nacional** (antes: cooperativa ou financeira regional) | O enunciado exige um decisor concreto; uma instituição regional não escolhe entre os 27 estados | 0, 10 |
 | 14 | 2026-09-27 | **Regra de decisão:** a cada trimestre, expandir nas **20 combinações com maior probabilidade** de ganhar força (em vez de uma nota mínima fixa) | O erro de expandir onde o crédito perde força tem custo imediato — vale ser seletivo; no teste, as 20 maiores notas acertaram 82,5% (regra simples: 75%); lista fixa combina com a capacidade de execução e não depende da calibração das notas | 10 |
 | 15 | 2026-09-27 | **Docker removido** (`Dockerfile` e `docker-compose.yml`); o ambiente padrão é `venv` + `requirements.txt` | O venv com versões fixadas já atende o enunciado e o CI confirma o ambiente em Python 3.11; manter um segundo caminho de execução não agregava | 7.2 |
+| 16 | 2026-09-27 | **Publicação:** o pipeline recria as tabelas finais no Neon numa única transação (`src/publicacao/neon.py`, `psycopg` com `COPY`); a string de conexão fica em `DATABASE_URL` (`.env` fora do Git, `python-dotenv`); o site em `web/` (Next.js) só lê o banco, no servidor | Recriar é o jeito mais simples de ser idempotente (o banco espelha o arquivo); a transação evita o site mostrar uma publicação pela metade; o pipeline continua rodando sem a nuvem | 0, 5, 7, 9 |
 
 ---
 

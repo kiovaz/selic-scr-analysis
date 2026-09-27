@@ -285,6 +285,36 @@ no relatório da Silver.
 
 ---
 
+## Tabelas publicadas no Neon
+
+Etapa opcional do pipeline (`src/publicacao/neon.py`, decisão 16 do `architecture.md`): com
+`DATABASE_URL` no `.env`, cada arquivo abaixo vira uma tabela de mesmo nome no Postgres do Neon,
+**com as mesmas colunas** descritas neste dicionário. A cada execução as tabelas são apagadas e
+criadas de novo numa única transação — o banco é uma cópia do que está em `data/final/`.
+
+| Tabela no Neon | Arquivo de origem |
+|---|---|
+| `gold_credito_selic` | `data/final/gold_credito_selic.parquet` (com índice em `uf, modalidade`) |
+| `recomendacao_trimestre` | `data/final/recomendacao_trimestre.parquet` |
+| `ml_previsao_producao` | `data/final/ml_previsao_producao.parquet` |
+| `sensibilidade_limiar` | `data/final/sensibilidade_limiar.parquet` |
+| `analise_brasil_modalidade` | `data/final/analise_brasil_modalidade.parquet` |
+| `analise_uf_modalidade` | `data/final/analise_uf_modalidade.parquet` |
+| `frase_fechamento` | `data/final/frase_fechamento.json` — uma linha, o JSON inteiro na coluna `dados` (`jsonb`) |
+
+Tipos: inteiro → `bigint`, decimal → `double precision`, booleano → `boolean`, data → `date`,
+texto → `text`. `NaN` vira `NULL`.
+
+**`publicacao_controle`** — uma linha por publicação (não é apagada):
+
+| Coluna | Tipo | Significado |
+|---|---|---|
+| `load_id` | text | identificador da publicação |
+| `publicado_em` | timestamptz | momento da publicação |
+| `linhas` | jsonb | número de linhas enviadas por tabela |
+
+---
+
 ## Limitações conhecidas
 
 1. O SCR.data traz o **saldo** da carteira no fim do mês, não os financiamentos novos. A variação mensal é uma aproximação de fluxo.

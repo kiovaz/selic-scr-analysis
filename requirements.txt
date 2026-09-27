@@ -19,3 +19,8 @@ scipy==1.17.1
 pytest==9.1.1
 
 pyarrow==25.0.1
+
+# Publicação da Gold no Neon (Postgres na nuvem — decisão 16 do architecture.md).
+# psycopg: conexão com o banco; python-dotenv: lê a string de conexão do .env.
+psycopg[binary]==3.3.6
+python-dotenv==1.2.3
