@@ -1,13 +1,16 @@
 """
 Executa o pipeline inteiro, de ponta a ponta.
 
-Cada sprint acrescenta uma etapa aqui. Por enquanto (Sprint 1) só prepara
-as pastas e confirma que a configuração carrega.
+Cada sprint acrescenta uma etapa aqui. Hoje: prepara as pastas e faz a
+ingestão Bronze do SCR e da Selic (Sprint 2).
 
 Como rodar (da raiz do projeto):
-    python scripts/run_pipeline.py
+    python scripts/run_pipeline.py              # todos os anos (~2 GB de download)
+    python scripts/run_pipeline.py --anos 2024  # só os anos escolhidos do SCR
 """
 
+import argparse
+import logging
 import sys
 from pathlib import Path
 
@@ -19,6 +22,18 @@ from src.ingestion.selic_api_loader import carregar_selic
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Pipeline Selic x SCR, ponta a ponta.")
+    parser.add_argument(
+        "--anos", type=int, nargs="*",
+        help="Anos do SCR a processar (padrão: ANO_INICIO a ANO_FIM). "
+             "Cada ano é um ZIP de ~170 MB.",
+    )
+    args = parser.parse_args()
+
+    # Mostra no terminal o que os loaders registram (downloads, CSVs
+    # rejeitados, linhas gravadas).
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+
     print("Preparando as pastas de dados...")
     config.criar_pastas()
     print(f"  Bronze : {config.DIR_BRONZE}")
@@ -33,7 +48,7 @@ def main():
     print("\n=== Sprint 2: Ingestão Bronze ===")
 
     print("\nIngerindo SCR.data...")
-    load_id_scr = carregar_scr()
+    load_id_scr = carregar_scr(anos=args.anos)
     print(f"  SCR concluído (load_id: {load_id_scr})")
 
     print("\nIngerindo Selic (Ipeadata)...")
