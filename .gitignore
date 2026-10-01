@@ -20,10 +20,19 @@ venv/
 # Notebooks
 .ipynb_checkpoints/
 
-# Configuração pessoal das ferramentas de IA
+# Configuração pessoal de ferramentas locais
 .claude/settings.local.json
 
 # Sistema operacional / editor
 .DS_Store
 .vscode/
 .idea/
+# Credenciais (string de conexão do Neon) — nunca vão para o Git
+.env
+.env.*
+!.env.exemplo
+
+# Front (web/)
+web/node_modules/
+web/.next/
+web/.vercel/

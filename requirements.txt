@@ -10,6 +10,17 @@ seaborn==0.13.2
 
 # Machine learning (Sprint 5)
 scikit-learn==1.9.0
+# Correlações e valores-p da análise (Sprint 4). 1.17.1 é a última versão
+# que roda no Python 3.11 do projeto e do CI (a 1.18 exige 3.12+). Já vinha instalado como
+# dependência do scikit-learn; agora está declarado e fixado.
+scipy==1.17.1
 
 # Testes (Sprint 3)
 pytest==9.1.1
+
+pyarrow==25.0.1
+
+# Publicação da Gold no Neon (Postgres na nuvem — decisão 16 do architecture.md).
+# psycopg: conexão com o banco; python-dotenv: lê a string de conexão do .env.
+psycopg[binary]==3.3.6
+python-dotenv==1.2.3

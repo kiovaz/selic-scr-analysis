@@ -47,3 +47,16 @@ def test_colunas_usadas_do_scr():
     assert len(config.SCR_COLUNAS_USADAS) == 5
     assert "carteira_ativa" in config.SCR_COLUNAS_USADAS
     assert "numero_de_operacoes" in config.SCR_COLUNAS_USADAS
+
+
+def test_nome_do_zip_igual_ao_publicado_pelo_bcb():
+    """O ZIP em disco tem o mesmo nome do arquivo na URL do BCB."""
+    nome = config.SCR_NOME_ZIP.format(ano=2024)
+    url = config.SCR_URL_TEMPLATE.format(ano=2024)
+    assert url.endswith("/" + nome)
+
+
+def test_recorte_tem_exatamente_10_anos():
+    """jul/2016 a jun/2026: 120 meses (seção 2.3 do architecture.md)."""
+    meses = (config.ANO_FIM - config.ANO_INICIO) * 12 + (config.MES_FIM - config.MES_INICIO) + 1
+    assert meses == 120
