@@ -387,7 +387,7 @@ Stack enxuta de propósito. Cada ferramenta aqui ou é exigida pelo enunciado, o
 | **venv + `requirements.txt` com versões fixadas** | exigido pelo enunciado |
 | **pytest** | é como se prova a unicidade da chave e a idempotência. Sem isso, o Requisito 2 vira promessa |
 | **Neon (Postgres) + `psycopg` + `python-dotenv`** | publicação opcional das tabelas finais (decisão 16). O `python-dotenv` lê a string de conexão do `.env`, que fica fora do Git |
-| **Next.js na Vercel** (`web/`) | site só de leitura com a recomendação, Selic × crédito e a exploração por estado e modalidade |
+| **Next.js na Vercel** (`web/`) | site só de leitura, em página única: decisão, recomendação, Selic × crédito (com o mapa de calor por estado), modelo, exploração por estado e modalidade e sobre os dados (decisão 17) |
 | **GitHub Actions** | roda os testes a cada push. Custo de setup baixo (um YAML), e mostra na prática que o pipeline não quebrou |
 | **Git** | exigido |
 
@@ -606,6 +606,7 @@ Decisões tomadas pelo grupo ao longo das sprints. O detalhe fica na seção ind
 | 14 | 2026-09-27 | **Regra de decisão:** a cada trimestre, expandir nas **20 combinações com maior probabilidade** de ganhar força (em vez de uma nota mínima fixa) | O erro de expandir onde o crédito perde força tem custo imediato — vale ser seletivo; no teste, as 20 maiores notas acertaram 82,5% (regra simples: 75%); lista fixa combina com a capacidade de execução e não depende da calibração das notas | 10 |
 | 15 | 2026-09-27 | **Docker removido** (`Dockerfile` e `docker-compose.yml`); o ambiente padrão é `venv` + `requirements.txt` | O venv com versões fixadas já atende o enunciado e o CI confirma o ambiente em Python 3.11; manter um segundo caminho de execução não agregava | 7.2 |
 | 16 | 2026-09-27 | **Publicação:** o pipeline recria as tabelas finais no Neon numa única transação (`src/publicacao/neon.py`, `psycopg` com `COPY`); a string de conexão fica em `DATABASE_URL` (`.env` fora do Git, `python-dotenv`); o site em `web/` (Next.js) só lê o banco, no servidor | Recriar é o jeito mais simples de ser idempotente (o banco espelha o arquivo); a transação evita o site mostrar uma publicação pela metade; o pipeline continua rodando sem a nuvem | 0, 5, 7, 9 |
+| 17 | 2026-10-01 | **Site reestruturado em página única** (`web/`), a partir de um protótipo do Claude Design: seis seções com tooltips de glossário, tema claro/escuro e gráficos em SVG próprio (sai o `recharts`). Lê **só as tabelas já publicadas** (nenhum dado novo no Neon); a série de cada combinação vem sob demanda pela rota `/api/combinacao`. As antigas `/selic-credito` e `/explorar` redirecionam para as seções | Mostrar a decisão e a análise inteiras num só lugar, com os termos técnicos explicados para quem é de fora da área; os indicadores continuam vindo prontos do banco | 7.1 |
 
 ---
 
