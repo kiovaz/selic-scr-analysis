@@ -1,10 +1,39 @@
-# Impacto da Selic nos Financiamentos por Estado
+# 📈 Impacto da Selic nos Financiamentos por Estado
 
-Pipeline de dados que cruza o **saldo de financiamentos por estado e modalidade** (SCR.data / Banco Central) com a **Selic meta do Copom** (Ipeadata / Ipea), mede a associação entre os dois e treina um modelo que recomenda, a cada trimestre, **em quais estados e modalidades vale expandir a oferta de crédito**.
+<p align="left">
+  <img src="https://img.shields.io/badge/Institui%C3%A7%C3%A3o-CESUPA-blue?style=for-the-badge" alt="CESUPA" />
+  <img src="https://img.shields.io/badge/Turma-EC6MA-orange?style=for-the-badge" alt="Turma EC6MA" />
+  <img src="https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python 3.11" />
+  <img src="https://img.shields.io/badge/Status-Conclu%C3%ADdo-brightgreen?style=for-the-badge" alt="Status" />
+</p>
+
+Pipeline de dados de **Ciência de Dados** que cruza o **saldo de financiamentos por estado e modalidade** (SCR.data / Banco Central) com a **Selic meta do Copom** (Ipeadata / Ipea), mede a associação entre os dois e treina um modelo de Machine Learning que recomenda, a cada trimestre, **em quais estados e modalidades vale expandir a oferta de crédito**.
 
 ---
 
-## O que o projeto responde
+## 👥 Integrantes e Informações Acadêmicas
+
+- **Instituição:** CESUPA (Centro Universitário do Estado do Pará)
+- **Turma:** EC6MA
+- **Disciplina:** Ciência de Dados
+
+### Autores
+- **Caio Vasconcelos**
+- **Yasmin dos Santos**
+- **Ana Alice Dias**
+
+---
+
+## 📌 Sumário
+- [O que o projeto responde](#-o-que-o-projeto-responde)
+- [Como rodar do zero](#-como-rodar-do-zero)
+- [Estrutura do repositório](#-estrutura-do-reposit%C3%B3rio)
+- [Fontes de dados](#-fontes-de-dados)
+- [Sprints e Histórico](#-sprints)
+
+---
+
+## 🎯 O que o projeto responde
 
 > "Cruzando o **SCR.data (Banco Central)** e a **Selic meta do Copom (Ipeadata)**, identificamos que **o saldo do crédito imobiliário anda junto com a Selic de 4 meses antes (Spearman +0,42), mas a Selic não antecipa o trimestre seguinte — o que antecipa é o ritmo recente do próprio crédito em cada estado**. Recomendamos que **a diretoria de crédito de uma instituição financeira de atuação nacional** faça **a expansão da oferta de financiamento nas 20 combinações estado × modalidade com maior probabilidade de o crédito ganhar força** nos próximos **3 meses (set–nov/2026)**, priorizando **as de maior saldo dentro da lista**. Se agir, o ganho esperado é **acertar ~16,5 de 20 expansões por trimestre (82,5%), contra ~15,0 da regra simples e ~10,0 ao acaso**; se errarmos, o custo é **~3,5 expansões por trimestre em mercados que estão perdendo força — capital, captação e equipe comercial alocados sem retorno no trimestre**."
 
@@ -12,22 +41,14 @@ Os números acima são gerados pelo pipeline (`data/final/frase_fechamento.json`
 
 ---
 
-## Integrantes
+## 💻 Como rodar do zero
 
-- Caio Vasconcelos
-- Yasmin dos Santos
-- Ana Alice Dias
-
----
-
-## Como rodar do zero
-
-Precisa de **Python 3.11** (é a versão do CI) e de ~8 GB livres em disco. Os comandos abaixo rodam **a partir da raiz do projeto**.
+Precisa de **Python 3.11** (versão do CI) e de ~8 GB livres em disco. Os comandos abaixo rodam **a partir da raiz do projeto**.
 
 ### 1. Clonar o repositório
 
 ```bash
-git clone https://github.com/kiovaz/selic-scr-analysis.git
+git clone [https://github.com/kiovaz/selic-scr-analysis.git](https://github.com/kiovaz/selic-scr-analysis.git)
 cd selic-scr-analysis
 ```
 
