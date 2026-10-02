@@ -43,7 +43,9 @@ export default function SecaoExplorar({ dados, combinacao, setCombinacao }: {
     }
     let cancelado = false;
     setCarregando(true);
-    fetch(`/api/combinacao?uf=${encodeURIComponent(uf)}&modalidade=${encodeURIComponent(modalidade)}`)
+    // `v` = data da publicação: depois de uma publicação nova, a URL muda e nenhum cache devolve a série antiga.
+    const versao = encodeURIComponent(dados.publicadoEm ?? "");
+    fetch(`/api/combinacao?uf=${encodeURIComponent(uf)}&modalidade=${encodeURIComponent(modalidade)}&v=${versao}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
       .then((linhas: MesCombinacao[]) => {
         guardadas.current.set(k, linhas);
@@ -57,7 +59,7 @@ export default function SecaoExplorar({ dados, combinacao, setCombinacao }: {
     return () => {
       cancelado = true;
     };
-  }, [k, uf, modalidade]);
+  }, [k, uf, modalidade, dados.publicadoEm]);
 
   const meses = mesesDoRecorte(dados);
   const volume = alinhar(serie, meses, (l) => l.volume_rs);

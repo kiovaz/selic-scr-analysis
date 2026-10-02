@@ -23,6 +23,25 @@ import type {
   Sensibilidade,
 } from "./tipos";
 
+/**
+ * Executa a leitura e, se falhar, espera um pouco e tenta mais uma vez.
+ *
+ * Por quê: a publicação do pipeline apaga e recria as tabelas numa transação
+ * (src/publicacao/neon.py). Uma leitura que chega bem nessa hora espera a
+ * transação terminar e pode falhar, porque a tabela foi trocada. Um segundo
+ * depois, a tabela nova já está lá.
+ */
+export async function repetirSeFalhar<T>(ler: () => Promise<T>, tentativas = 2, esperaMs = 1000): Promise<T> {
+  for (let i = 1; ; i++) {
+    try {
+      return await ler();
+    } catch (erro) {
+      if (i >= tentativas) throw erro;
+      await new Promise((resolver) => setTimeout(resolver, esperaMs));
+    }
+  }
+}
+
 /** Números da frase de fechamento (data/final/frase_fechamento.json). */
 export async function lerFrase(): Promise<Frase> {
   const linhas = await banco()`SELECT dados FROM frase_fechamento LIMIT 1`;

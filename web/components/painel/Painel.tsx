@@ -16,6 +16,7 @@ import SecaoSelic from "./SecaoSelic";
 import SecaoModelo from "./SecaoModelo";
 import SecaoExplorar from "./SecaoExplorar";
 import SecaoDados from "./SecaoDados";
+import { useAtualizacaoAutomatica } from "./useAtualizacaoAutomatica";
 
 type Dica = { titulo: string; texto: string; x: number; y: number; acima: boolean };
 
@@ -46,6 +47,9 @@ export default function Painel({ dados }: { dados: DadosPainel }) {
     }
     setEscuro(!escuro);
   };
+
+  // ---------- Dados novos publicados pelo pipeline ----------
+  const dadosNovos = useAtualizacaoAutomatica(dados.publicadoEm);
 
   // ---------- Combinação aberta na seção Explorar ----------
   const [combinacao, setCombinacao] = useState({
@@ -123,9 +127,22 @@ export default function Painel({ dados }: { dados: DadosPainel }) {
         <SecaoRecomendacao dados={dados} abrirCombinacao={abrirCombinacao} />
         <SecaoSelic dados={dados} abrirCombinacao={abrirCombinacao} />
         <SecaoModelo dados={dados} />
-        <SecaoExplorar dados={dados} combinacao={combinacao} setCombinacao={setCombinacao} />
+        {/* A chave muda a cada publicação: a seção recomeça e descarta as séries antigas que guardou. */}
+        <SecaoExplorar
+          key={dados.publicadoEm ?? ""}
+          dados={dados}
+          combinacao={combinacao}
+          setCombinacao={setCombinacao}
+        />
         <SecaoDados publicadoEm={dados.publicadoEm} />
       </main>
+
+      {dadosNovos && (
+        <div className="aviso-atualizacao" role="status">
+          <span className="ponto" style={{ background: "var(--expand)" }} />
+          Dados atualizados · publicação de {dados.publicadoEm}
+        </div>
+      )}
 
       {dica && (
         <div

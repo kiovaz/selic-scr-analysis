@@ -6,7 +6,7 @@
  *
  * Só leitura: a consulta é parametrizada (sem montar SQL com texto do usuário).
  */
-import { lerCombinacao } from "@/lib/consultas";
+import { lerCombinacao, repetirSeFalhar } from "@/lib/consultas";
 import { UFS } from "@/lib/ufs";
 
 export async function GET(requisicao: Request) {
@@ -18,7 +18,8 @@ export async function GET(requisicao: Request) {
     return Response.json({ erro: "Informe uf (sigla de um dos 27 estados) e modalidade." }, { status: 400 });
   }
 
-  const serie = await lerCombinacao(uf, modalidade);
-  // O dado só muda quando o pipeline publica de novo: a CDN pode guardar a resposta por uma hora.
-  return Response.json(serie, { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" } });
+  const serie = await repetirSeFalhar(() => lerCombinacao(uf, modalidade));
+  // Cache curto na CDN (10 s), igual ao da página: uma nova publicação aparece quase na hora.
+  // O navegador ainda manda a data da publicação na URL (?v=), o que já separa versões diferentes.
+  return Response.json(serie, { headers: { "Cache-Control": "public, s-maxage=10, stale-while-revalidate=60" } });
 }
