@@ -81,7 +81,7 @@ export default function SecaoDecisao({ dados }: { dados: DadosPainel }) {
         </div>
 
         <div className="conclusao">
-          <div className="rotulo-secao">A conclusão</div>
+          <div className="rotulo-secao conclusao-rotulo">A conclusão</div>
           <p className="ocupa-2">
             Cruzando o SCR.data (Banco Central) e a <Termo id="selic">Selic meta</Termo> do <Termo id="copom">Copom</Termo>{" "}
             (Ipeadata), identificamos que o saldo do crédito {modForte} anda junto com a Selic de {assoc.defasagem_meses}{" "}

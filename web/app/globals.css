@@ -462,6 +462,19 @@ h3 {
   padding-top: 32px;
   border-top: 1px solid var(--line);
 }
+/* Rótulo da conclusão: maior que o rótulo padrão e centralizado na
+   vertical em relação ao parágrafo ao lado (no celular fica acima dele). */
+.conclusao-rotulo {
+  align-self: center;
+  font-size: clamp(20px, 2.4vw, 28px);
+  letter-spacing: 0.06em;
+  color: var(--ink);
+}
+@media (max-width: 720px) {
+  .conclusao-rotulo {
+    align-self: start;
+  }
+}
 .conclusao p {
   margin: 0;
   font-size: 17px;
