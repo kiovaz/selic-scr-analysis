@@ -1,40 +1,26 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 
+const sans = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--fonte-texto" });
+const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--fonte-mono" });
+
 export const metadata: Metadata = {
-  title: "Selic e Crédito por Estado",
+  title: "Selic × Crédito por estado",
   description:
     "Saldo de financiamentos por estado e modalidade (SCR.data/BCB) cruzado com a Selic meta do Copom (Ipeadata), e a recomendação do trimestre.",
 };
 
+// Aplica o tema escolhido antes da primeira pintura, para a página não piscar no tema errado.
+const SCRIPT_TEMA = `try{var t=localStorage.getItem("tema");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t)}catch(e){}`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt-BR">
-      <body>
-        <header className="topo">
-          <div className="topo-conteudo">
-            <Link href="/" className="marca">
-              Selic e Crédito por Estado
-            </Link>
-            <nav className="menu" aria-label="Páginas">
-              <Link href="/">Recomendação</Link>
-              <Link href="/selic-credito">Selic × crédito</Link>
-              <Link href="/explorar">Explorar</Link>
-            </nav>
-          </div>
-        </header>
-        {children}
-        <footer className="rodape">
-          <div>
-            Fontes: <a href="https://dadosabertos.bcb.gov.br/dataset/scr_data">SCR.data</a> (Banco Central do
-            Brasil, licença ODbL) e Selic meta do Copom, série BM366_TJOVER366 (
-            <a href="http://www.ipeadata.gov.br">Ipeadata</a>). Recorte: jul/2016 a jun/2026. Os valores são{" "}
-            <strong>saldo de carteira</strong> no fim de cada mês, em reais nominais — não o volume de
-            financiamentos novos.
-          </div>
-        </footer>
-      </body>
+    <html lang="pt-BR" className={`${sans.variable} ${mono.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_TEMA }} />
+      </head>
+      <body>{children}</body>
     </html>
   );
 }
