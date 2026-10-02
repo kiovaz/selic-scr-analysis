@@ -1,4 +1,4 @@
-# 📈 Impacto da Selic nos Financiamentos por Estado
+# Impacto da Selic nos Financiamentos por Estado
 
 <p align="left">
   <img src="https://img.shields.io/badge/Institui%C3%A7%C3%A3o-CESUPA-blue?style=for-the-badge" alt="CESUPA" />
@@ -11,7 +11,7 @@ Pipeline de dados de **Ciência de Dados** que cruza o **saldo de financiamentos
 
 ---
 
-## 👥 Integrantes e Informações Acadêmicas
+## Integrantes e Informações Acadêmicas
 
 - **Instituição:** CESUPA (Centro Universitário do Estado do Pará)
 - **Turma:** EC6MA
@@ -24,7 +24,7 @@ Pipeline de dados de **Ciência de Dados** que cruza o **saldo de financiamentos
 
 ---
 
-## 📌 Sumário
+## Sumário
 - [O que o projeto responde](#-o-que-o-projeto-responde)
 - [Como rodar do zero](#-como-rodar-do-zero)
 - [Estrutura do repositório](#-estrutura-do-reposit%C3%B3rio)
@@ -33,7 +33,7 @@ Pipeline de dados de **Ciência de Dados** que cruza o **saldo de financiamentos
 
 ---
 
-## 🎯 O que o projeto responde
+## O que o projeto responde
 
 > "Cruzando o **SCR.data (Banco Central)** e a **Selic meta do Copom (Ipeadata)**, identificamos que **o saldo do crédito imobiliário anda junto com a Selic de 4 meses antes (Spearman +0,42), mas a Selic não antecipa o trimestre seguinte — o que antecipa é o ritmo recente do próprio crédito em cada estado**. Recomendamos que **a diretoria de crédito de uma instituição financeira de atuação nacional** faça **a expansão da oferta de financiamento nas 20 combinações estado × modalidade com maior probabilidade de o crédito ganhar força** nos próximos **3 meses (set–nov/2026)**, priorizando **as de maior saldo dentro da lista**. Se agir, o ganho esperado é **acertar ~16,5 de 20 expansões por trimestre (82,5%), contra ~15,0 da regra simples e ~10,0 ao acaso**; se errarmos, o custo é **~3,5 expansões por trimestre em mercados que estão perdendo força — capital, captação e equipe comercial alocados sem retorno no trimestre**."
 
@@ -41,7 +41,7 @@ Os números acima são gerados pelo pipeline (`data/final/frase_fechamento.json`
 
 ---
 
-## 💻 Como rodar do zero
+## Como rodar do zero
 
 Precisa de **Python 3.11** (versão do CI) e de ~8 GB livres em disco. Os comandos abaixo rodam **a partir da raiz do projeto**.
 
